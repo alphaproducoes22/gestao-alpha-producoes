@@ -4580,74 +4580,74 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
     initV57Module();
 })();
 </script>
-    <!-- PLUGIN DE ATUALIZAÇÕES ALPHA (COLE SEMPRE NO FINAL DO ARQUIVO) -->
+<!-- PLUGIN OFICIAL ALPHA - ATUALIZAÇÃO AUTOMÁTICA -->
 <script>
 (function() {
-    const initAlphaPatch = () => {
-        if (!window.app || !app.render) { setTimeout(initAlphaPatch, 150); return; }
+    window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            if (!window.app) return;
 
-        // 1. TROCA O NOME "DAY SHEET" POR "CRONOGRAMA DO EVENTO" EM TODO O SISTEMA
-        const origRenderShowView = app.renderShowView.bind(app);
-        app.renderShowView = function() {
-            let html = origRenderShowView();
-            return html.replace(/⏱️ Day Sheet/g, '⏱️ Cronograma do Evento');
-        };
+            // 1. Troca Day Sheet por Cronograma do Evento
+            const origRenderShowView = app.renderShowView.bind(app);
+            app.renderShowView = function() {
+                let html = origRenderShowView();
+                return html.replace(/⏱️ Day Sheet/g, '⏱️ Cronograma do Evento');
+            };
 
-        // 2. COMISSÃO PADRÃO 10% PARA DJ MOTHÉ E 20% PARA OUTROS
-        app.getArtistFinMetrics = function(show) {
-            const parent = this.data.find(d => (d.kind === 'single' && d.show?.id === show?.id) || (d.shows || []).some(x => x.id === show?.id));
-            const defaultPct = (parent?.artistId === 'art_dj_mothe' || this.activeArtistId === 'art_dj_mothe') ? 10 : 20;
-            const af = show?.artistFinancials || {};
-            const contracted = Number(af.contractedValue || 0);
-            const commPct = typeof af.commissionPct !== 'undefined' ? Number(af.commissionPct) : defaultPct;
-            const commVal = typeof af.commissionValue !== 'undefined' ? Number(af.commissionValue) : Number(((contracted * commPct) / 100).toFixed(2));
-            const netArtist = Math.max(0, contracted - commVal);
-            const payMode = af.payMode || 'sinal_saldo';
+            // 2. Comissão Alpha: 10% para DJ Mothé, 20% para os demais
+            app.getArtistFinMetrics = function(show) {
+                const parent = this.data.find(d => (d.kind === 'single' && d.show?.id === show?.id) || (d.shows || []).some(x => x.id === show?.id));
+                const defaultPct = (parent?.artistId === 'art_dj_mothe' || this.activeArtistId === 'art_dj_mothe') ? 10 : 20;
+                const af = show?.artistFinancials || {};
+                const contracted = Number(af.contractedValue || 0);
+                const commPct = typeof af.commissionPct !== 'undefined' ? Number(af.commissionPct) : defaultPct;
+                const commVal = typeof af.commissionValue !== 'undefined' ? Number(af.commissionValue) : Number(((contracted * commPct) / 100).toFixed(2));
+                const netArtist = Math.max(0, contracted - commVal);
+                const payMode = af.payMode || 'sinal_saldo';
 
-            let received = 0;
-            if (payMode === 'avista') {
-                received = af.avistaPaid ? contracted : 0;
-            } else if (payMode === 'sinal_parcelas') {
-                if (af.sinalPaid) received += Number(af.sinalValue || 0);
-                (af.installments || []).forEach(inst => { if (inst.paid) received += Number(inst.amount || 0); });
-            } else {
-                if (af.sinalPaid) received += Number(af.sinalValue || 0);
-                if (af.saldoPaid) received += Number(af.saldoValue || 0);
-            }
-            const pending = Math.max(0, contracted - received);
-            return { feeType: af.feeType || 'Cachê', payMode, contracted, commPct, commVal, netArtist, received, pending, af };
-        };
+                let received = 0;
+                if (payMode === 'avista') {
+                    received = af.avistaPaid ? contracted : 0;
+                } else if (payMode === 'sinal_parcelas') {
+                    if (af.sinalPaid) received += Number(af.sinalValue || 0);
+                    (af.installments || []).forEach(inst => { if (inst.paid) received += Number(inst.amount || 0); });
+                } else {
+                    if (af.sinalPaid) received += Number(af.sinalValue || 0);
+                    if (af.saldoPaid) received += Number(af.saldoValue || 0);
+                }
+                const pending = Math.max(0, contracted - received);
+                return { feeType: af.feeType || 'Cachê', payMode, contracted, commPct, commVal, netArtist, received, pending, af };
+            };
 
-        // 3. REMOVE BOTÃO FORNECEDORES NA GESTÃO DE ARTISTAS E OCULTA SHOWS NA HOME
-        const origRenderHomeView = app.renderHomeView.bind(app);
-        app.renderHomeView = function() {
-            const origData = this.data;
-            this.data = (origData || []).filter(item => !item.artistId);
-            const html = origRenderHomeView();
-            this.data = origData;
-            return html;
-        };
+            // 3. Oculta eventos de artistas da Home e remove botão de fornecedores na gestão de artistas
+            const origRenderHomeView = app.renderHomeView.bind(app);
+            app.renderHomeView = function() {
+                const origData = this.data;
+                this.data = (origData || []).filter(item => !item.artistId);
+                const html = origRenderHomeView();
+                this.data = origData;
+                return html;
+            };
 
-        const origUpdateUserHeaderBadge = app.updateUserHeaderBadge.bind(app);
-        app.updateUserHeaderBadge = function() {
-            origUpdateUserHeaderBadge();
-            const parent = this.getActiveParent();
-            const inArtistMode = (this.view === 'artist_hub') || (this.view === 'show' && parent?.artistId);
-            const supBtn = document.getElementById('side-suppliers');
-            if (supBtn && inArtistMode) supBtn.classList.add('hidden');
-        };
+            const origUpdateUserHeaderBadge = app.updateUserHeaderBadge.bind(app);
+            app.updateUserHeaderBadge = function() {
+                origUpdateUserHeaderBadge();
+                const parent = this.getActiveParent();
+                const inArtistMode = (this.view === 'artist_hub') || (this.view === 'show' && parent?.artistId);
+                const supBtn = document.getElementById('side-suppliers');
+                if (supBtn && inArtistMode) supBtn.classList.add('hidden');
+            };
 
-        // 4. PADRONIZAÇÃO DA FICHA TÉCNICA (PRODUTOR ALPHA RESPONSÁVEL)
-        const origRenderSpecsTab = app.renderSpecsTab.bind(app);
-        app.renderSpecsTab = function(show) {
-            let html = origRenderSpecsTab(show);
-            return html.replace(/Stage Manager Alpha/g, 'Produtor Alpha Produções Responsável');
-        };
+            // 4. Padroniza Produtor Alpha Responsável na Ficha Técnica
+            const origRenderSpecsTab = app.renderSpecsTab.bind(app);
+            app.renderSpecsTab = function(show) {
+                let html = origRenderSpecsTab(show);
+                return html.replace(/Stage Manager Alpha/g, 'Produtor Alpha Produções Responsável');
+            };
 
-        app.render();
-    };
-
-    initAlphaPatch();
+            app.render();
+        }, 300);
+    });
 })();
 </script>
 </body>
