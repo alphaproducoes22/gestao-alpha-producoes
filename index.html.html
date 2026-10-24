@@ -4613,5 +4613,74 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 400);
 });
 </script>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1 & 3. Alinhamento de comissões e regra de 10% para DJ Mothé / 20% para os outros
+        app.getArtistFinMetrics = function(show) {
+            const parent = this.data.find(d => (d.kind === 'single' && d.show?.id === show?.id) || (d.shows || []).some(x => x.id === show?.id));
+            const defaultPct = (parent?.artistId === 'art_dj_mothe' || this.activeArtistId === 'art_dj_mothe') ? 10 : 20;
+            const af = show?.artistFinancials || {};
+            const contracted = Number(af.contractedValue || 0);
+            const commPct = typeof af.commissionPct !== 'undefined' ? Number(af.commissionPct) : defaultPct;
+            const commVal = typeof af.commissionValue !== 'undefined' ? Number(af.commissionValue) : Number(((contracted * commPct) / 100).toFixed(2));
+            const netArtist = Math.max(0, contracted - commVal);
+            const payMode = af.payMode || 'sinal_saldo';
+
+            let received = 0;
+            if (payMode === 'avista') {
+                received = af.avistaPaid ? contracted : 0;
+            } else if (payMode === 'sinal_parcelas') {
+                if (af.sinalPaid) received += Number(af.sinalValue || 0);
+                (af.installments || []).forEach(inst => { if (inst.paid) received += Number(inst.amount || 0); });
+            } else {
+                if (af.sinalPaid) received += Number(af.sinalValue || 0);
+                if (af.saldoPaid) received += Number(af.saldoValue || 0);
+            }
+            const pending = Math.max(0, contracted - received);
+            return { feeType: af.feeType || 'Cachê', payMode, contracted, commPct, commVal, netArtist, received, pending, af };
+        };
+
+        // 2. Destrava o pop-up do Google Maps ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.relative')) {
+                document.querySelectorAll('.places-dropdown-popup').forEach(el => el.classList.add('hidden'));
+            }
+        });
+
+        // 4. Cards particulares em cinza escuro e melhorias visuais
+        const styleFix = document.createElement('style');
+        styleFix.innerHTML = `
+            .card-particular, [data-type="particular"] { background-color: #252A34 !important; }
+            input::placeholder, textarea::placeholder { opacity: 0.4 !important; color: inherit !important; }
+        `;
+        document.head.appendChild(styleFix);
+
+        // 9 & 10. Troca Day Sheet por Cronograma do Evento e ajusta fornecedores
+        const origRenderShowView = app.renderShowView ? app.renderShowView.bind(app) : null;
+        if (origRenderShowView) {
+            app.renderShowView = function() {
+                let html = origRenderShowView();
+                return html.replace(/⏱️ Day Sheet/g, '⏱️ Cronograma do Evento');
+            };
+        }
+
+        const origUpdateUserHeaderBadge = app.updateUserHeaderBadge ? app.updateUserHeaderBadge.bind(app) : null;
+        if (origUpdateUserHeaderBadge) {
+            app.updateUserHeaderBadge = function() {
+                origUpdateUserHeaderBadge();
+                const parent = this.getActiveParent();
+                const inArtistMode = (this.view === 'artist_hub') || (this.view === 'show' && parent?.artistId);
+                const supBtn = document.getElementById('side-suppliers');
+                if (supBtn && inArtistMode) supBtn.classList.add('hidden');
+            };
+        }
+
+        app.render();
+    }, 400);
+});
+</script>
 </body>
 </html>
