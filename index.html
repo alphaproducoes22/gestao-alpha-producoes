@@ -2723,88 +2723,125 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
 
         // Helper para calcular Comissão Alpha e Líquido do Artista em qualquer show
         app.getArtistFinMetrics = function(show) {
+            const parent = this.data.find(d => (d.kind === 'single' && d.show?.id === show?.id) || (d.shows || []).some(x => x.id === show?.id));
+            const isMothe = (parent?.artistId === 'art_dj_mothe' || this.activeArtistId === 'art_dj_mothe');
             const af = show?.artistFinancials || {};
             const contracted = Number(af.contractedValue || 0);
-            const commPct = typeof af.commissionPct !== 'undefined' ? Number(af.commissionPct) : 20;
-            const commVal = typeof af.commissionValue !== 'undefined' ? Number(af.commissionValue) : ((contracted * commPct) / 100);
+            
+            // Regra fixa: 10% para DJ Mothé, 20% para os demais (a menos que já tenha sido alterado manualmente)
+            const defaultPct = isMothe ? 10 : 20;
+            const commPct = typeof af.commissionPct !== 'undefined' ? Number(af.commissionPct) : defaultPct;
+            const commVal = typeof af.commissionValue !== 'undefined' ? Number(af.commissionValue) : Number(((contracted * commPct) / 100).toFixed(2));
             const netArtist = Math.max(0, contracted - commVal);
-            const received = (af.sinalPaid ? Number(af.sinalValue || 0) : 0) + (af.saldoPaid ? Number(af.saldoValue || 0) : 0);
+            const payMode = af.payMode || 'sinal_saldo';
+
+            let received = 0;
+            if (payMode === 'avista') {
+                received = af.avistaPaid ? contracted : 0;
+            } else if (payMode === 'sinal_parcelas') {
+                if (af.sinalPaid) received += Number(af.sinalValue || 0);
+                (af.installments || []).forEach(inst => { if (inst.paid) received += Number(inst.amount || 0); });
+            } else {
+                if (af.sinalPaid) received += Number(af.sinalValue || 0);
+                if (af.saldoPaid) received += Number(af.saldoValue || 0);
+            }
             const pending = Math.max(0, contracted - received);
-            return { feeType: af.feeType || 'Cachê', contracted, commPct, commVal, netArtist, received, pending, af };
+            return { feeType: af.feeType || 'Cachê', payMode, contracted, commPct, commVal, netArtist, received, pending, af };
         };
 
-        // PAINEL PRINCIPAL DO ARTISTA COM MÉTRICA DE COMISSÃO DO ESCRITÓRIO ALPHA
-        app.renderArtistHubView = function() {
-            const art = this.getActiveArtistObj();
-            if (!art) return '';
-            const artistEvents = (this.data || []).filter(d => d.artistId === art.id);
-            artistEvents.sort((a, b) => ((a.show?.date || '')).localeCompare(b.show?.date || ''));
-
-            let totalContratado = 0, totalComissaoAlpha = 0, totalLiquidoArtista = 0, totalRecebidoArt = 0, totalPendenteArt = 0;
-            artistEvents.forEach(ev => {
-                const m = this.getArtistFinMetrics(ev.show);
-                totalContratado += m.contracted;
-                totalComissaoAlpha += m.commVal;
-                totalLiquidoArtista += m.netArtist;
-                totalRecebidoArt += m.received;
-                totalPendenteArt += m.pending;
-            });
+        // 4. CORREÇÃO DA DIAGRAMAÇÃO DO BLOCO DE COMISSÃO DENTRO DO SHOW
+        app.renderArtistFeeAndContractTab = function(show) {
+            const parent = this.getActiveParent();
+            const m = this.getArtistFinMetrics(show);
+            const af = m.af;
+            if (!show.serviceContract) show.serviceContract = { name: '', data: '' };
+            const stSinal = this.checkPaymentAlertState(af.sinalDate, af.sinalPaid || Number(af.sinalValue || 0) === 0);
+            const stSaldo = this.checkPaymentAlertState(af.saldoDate, af.saldoPaid || Number(af.saldoValue || 0) === 0);
 
             return `
-                <div class="bg-alpha-card border border-alpha-border rounded-2xl p-6 mb-6">
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-alpha-border">
-                        <div>
-                            <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded badge-warn">GESTÃO DE ARTISTA EXCLUSIVO • ALPHA PRODUÇÕES</span>
-                            <h2 class="text-3xl font-extrabold text-alpha-title mt-1">🎧 ${art.name}</h2>
-                            <p class="text-xs text-alpha-muted mt-0.5">${art.genre} • Equipe própria: <strong>${(art.crewRoster || []).length} integrantes</strong></p>
+                <div class="space-y-6">
+                    <div class="bg-alpha-dark border border-alpha-border rounded-2xl p-5">
+                        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-alpha-border mb-4">
+                            <div>
+                                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded badge-pos">CONTROLE DE CACHÊ & COMISSÃO DO ESCRITÓRIO ALPHA</span>
+                                <h4 class="text-base font-extrabold text-alpha-title mt-1">💵 Cachê Contratado, Comissão Alpha Produções & Parcelas</h4>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                <span class="bg-alpha-card px-3 py-1.5 rounded-lg border border-alpha-border">🏢 Comissão Alpha: <strong class="status-warn">${this.formatCurrency(m.commVal)} (${m.commPct}%)</strong></span>
+                                <span class="bg-alpha-card px-3 py-1.5 rounded-lg border border-alpha-border">🎤 Líquido Artista: <strong class="status-info">${this.formatCurrency(m.netArtist)}</strong></span>
+                                <span class="bg-alpha-card px-3 py-1.5 rounded-lg border border-alpha-border">Já Pago: <strong class="status-pos">${this.formatCurrency(m.received)}</strong></span>
+                                <span class="bg-alpha-card px-3 py-1.5 rounded-lg border border-alpha-border">Falta: <strong class="status-neg">${this.formatCurrency(m.pending)}</strong></span>
+                            </div>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2.5">
-                            <button onclick="app.openCrewManagerModal('${art.id}')" class="btn-secondary-alpha px-4 py-2.5 rounded-xl text-xs">🎤 Equipe de ${art.name} (${(art.crewRoster || []).length})</button>
-                            <button onclick="app.openArtistClientModal()" class="btn-secondary-alpha px-4 py-2.5 rounded-xl text-xs">👥 + Novo Cliente / Lead</button>
-                            <button onclick="app.openArtistEventModal('${art.id}')" class="btn-primary-alpha px-5 py-2.5 rounded-xl text-xs sm:text-sm shadow-lg">+ Novo Evento (${art.name})</button>
-                        </div>
-                    </div>
 
-                    <!-- 5 CARDS DE MÉTRICAS: SHOWS, BRUTO, COMISSÃO ALPHA, JÁ RECEBIDO E FALTA RECEBER -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 my-5">
-                        <div class="bg-alpha-dark border border-alpha-border rounded-xl p-3.5">
-                            <span class="text-[10px] uppercase font-bold text-alpha-muted">Eventos Agendados</span>
-                            <div class="text-xl font-extrabold text-alpha-title mt-0.5">${artistEvents.length} shows</div>
-                            <span class="text-[10px] text-alpha-muted">Agenda oficial</span>
+                        <!-- 4 COLUNAS 100% ALINHADAS EM GRID FLEXÍVEL -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5 text-xs items-end">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Modalidade</label>
+                                <select onchange="app.updateArtistFinField('feeType', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">
+                                    <option value="Cachê" ${af.feeType !== 'Oferta' ? 'selected' : ''}>💵 Cachê Fechado</option>
+                                    <option value="Oferta" ${af.feeType === 'Oferta' ? 'selected' : ''}>🙏 Oferta Voluntária</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold status-info block mb-1">Valor Bruto (R$)</label>
+                                <input type="number" step="0.01" value="${m.contracted}" onchange="app.updateArtistFinField('contractedValue', Number(this.value))" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 status-info font-extrabold text-sm">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold status-warn block mb-1">% Comissão Alpha</label>
+                                <input type="number" step="0.1" value="${m.commPct}" onchange="app.updateArtistFinField('commissionPct', Number(this.value))" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 status-warn font-extrabold text-sm">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold status-warn block mb-1">Comissão Alpha (R$)</label>
+                                <input type="number" step="0.01" value="${m.commVal}" onchange="app.updateArtistFinField('commissionValue', Number(this.value))" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 status-warn font-extrabold text-sm">
+                            </div>
                         </div>
-                        <div class="bg-alpha-dark border border-alpha-border rounded-xl p-3.5">
-                            <span class="text-[10px] uppercase font-bold text-alpha-muted">Cachê Bruto Contratado</span>
-                            <div class="text-xl font-extrabold status-info mt-0.5">${this.formatCurrency(totalContratado)}</div>
-                            <span class="text-[10px] text-alpha-muted">Líquido Artista: ${this.formatCurrency(totalLiquidoArtista)}</span>
-                        </div>
-                        <div class="bg-alpha-dark border border-alpha-border rounded-xl p-3.5">
-                            <span class="text-[10px] uppercase font-bold status-warn">🏢 Comissão Alpha (Escritório)</span>
-                            <div class="text-xl font-extrabold status-warn mt-0.5">${this.formatCurrency(totalComissaoAlpha)}</div>
-                            <span class="text-[10px] text-alpha-muted">Receita direta Alpha Produções</span>
-                        </div>
-                        <div class="bg-alpha-dark border border-alpha-border rounded-xl p-3.5">
-                            <span class="text-[10px] uppercase font-bold text-alpha-muted">Total Já Pago pelos Clientes</span>
-                            <div class="text-xl font-extrabold status-pos mt-0.5">+ ${this.formatCurrency(totalRecebidoArt)}</div>
-                            <span class="text-[10px] text-alpha-muted">Sinais + Saldos quitados</span>
-                        </div>
-                        <div class="bg-alpha-dark border border-alpha-border rounded-xl p-3.5">
-                            <span class="text-[10px] uppercase font-bold text-alpha-muted">Falta Receber (Pendente)</span>
-                            <div class="text-xl font-extrabold status-neg mt-0.5">${this.formatCurrency(totalPendenteArt)}</div>
-                            <span class="text-[10px] text-alpha-muted">Parcelas em aberto</span>
-                        </div>
-                    </div>
 
-                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="app.openArtistHub('${art.id}', 'events')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ${this.artistSubView === 'events' ? 'btn-primary-alpha shadow' : 'btn-secondary-alpha'}">📅 Agenda de Eventos (${artistEvents.length})</button>
-                            <button onclick="app.openArtistHub('${art.id}', 'revenues')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ${this.artistSubView === 'revenues' ? 'btn-primary-alpha shadow' : 'btn-secondary-alpha'}">💰 Somatório de Receitas & Comissões Alpha</button>
-                            <button onclick="app.openArtistHub('${art.id}', 'clients')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ${this.artistSubView === 'clients' ? 'btn-primary-alpha shadow' : 'btn-secondary-alpha'}">👥 Base de Clientes & Leads (${(this.artistClients || []).length})</button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div class="bg-alpha-card border border-alpha-border rounded-xl p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="font-extrabold text-alpha-title uppercase">1ª Parcela: SINAL / RESERVA</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] ${stSinal.cls}">${af.sinalPaid ? '✅ Sinal Recebido' : stSinal.label}</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2.5 mb-3">
+                                    <div>
+                                        <label class="text-[10px] uppercase text-alpha-muted block mb-1">Valor (R$)</label>
+                                        <input type="number" step="0.01" value="${af.sinalValue || 0}" onchange="app.updateArtistFinField('sinalValue', Number(this.value))" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2.5 text-alpha-title font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] uppercase text-alpha-muted block mb-1">Vencimento</label>
+                                        <input type="date" value="${af.sinalDate || ''}" onchange="app.updateArtistFinField('sinalDate', this.value)" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2.5 text-alpha-title">
+                                    </div>
+                                </div>
+                                <label class="flex items-center gap-2 cursor-pointer font-bold status-pos">
+                                    <input type="checkbox" ${af.sinalPaid ? 'checked' : ''} onchange="app.updateArtistFinField('sinalPaid', this.checked)" class="w-4 h-4 accent-alpha-yellow">
+                                    <span>Sinal já pago pelo cliente</span>
+                                </label>
+                            </div>
+
+                            <div class="bg-alpha-card border border-alpha-border rounded-xl p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="font-extrabold text-alpha-title uppercase">2ª Parcela: SALDO RESTANTE</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] ${stSaldo.cls}">${af.saldoPaid ? '✅ Saldo Recebido' : stSaldo.label}</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2.5 mb-3">
+                                    <div>
+                                        <label class="text-[10px] uppercase text-alpha-muted block mb-1">Valor (R$)</label>
+                                        <input type="number" step="0.01" value="${af.saldoValue || 0}" onchange="app.updateArtistFinField('saldoValue', Number(this.value))" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2.5 text-alpha-title font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] uppercase text-alpha-muted block mb-1">Vencimento</label>
+                                        <input type="date" value="${af.saldoDate || ''}" onchange="app.updateArtistFinField('saldoDate', this.value)" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2.5 text-alpha-title">
+                                    </div>
+                                </div>
+                                <label class="flex items-center gap-2 cursor-pointer font-bold status-pos">
+                                    <input type="checkbox" ${af.saldoPaid ? 'checked' : ''} onchange="app.updateArtistFinField('saldoPaid', this.checked)" class="w-4 h-4 accent-alpha-yellow">
+                                    <span>Saldo já pago pelo cliente</span>
+                                </label>
+                            </div>
                         </div>
-                        <button onclick="app.exportArtistRevenuePdf('${art.id}')" class="btn-secondary-alpha status-pos px-4 py-2 rounded-xl text-xs">📄 Exportar Relatório de Receitas & Comissões (PDF)</button>
                     </div>
                 </div>
-
-                ${this.artistSubView === 'clients' ? this.renderArtistClientsSection(art) : this.artistSubView === 'revenues' ? this.renderArtistRevenuesSummarySection(art, artistEvents) : this.renderArtistEventsGrid(art, artistEvents)}
             `;
         };
 
