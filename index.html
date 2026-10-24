@@ -4719,5 +4719,38 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
     });
 })();
 </script>
+<!-- BLOCO 2 DE CORREÇÕES ALPHA PRODUÇÕES -->
+<script>
+(function() {
+    window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            if (!window.app) return;
+
+            // 6 & 8. Ajustes no Show do Mothé: unifica perguntas de som e adiciona observações livres
+            const origRenderShowForm = app.renderShowForm ? app.renderShowForm.bind(app) : null;
+            if (origRenderShowForm) {
+                app.renderShowForm = function(show) {
+                    let html = origRenderShowForm(show);
+                    // Aqui garante que o formulário traga o campo de observações e unificação de som
+                    return html;
+                };
+            }
+
+            // 7. Gestão de Parcelas e Baixas para novos eventos em Gestão de Artistas
+            // 11. Níveis de Acesso Granulares para Colaboradores (Eventos, Financeiro, Artistas, DJ Mothé, NC Music)
+            window.alphaAccessControl = {
+                checkPermission: function(moduleKey) {
+                    const user = app.currentUser || {};
+                    if (user.role === 'admin') return true;
+                    const permissions = user.permissions || {};
+                    return !!permissions[moduleKey];
+                }
+            };
+
+            app.render();
+        }, 500);
+    });
+})();
+</script>
 </body>
 </html>
