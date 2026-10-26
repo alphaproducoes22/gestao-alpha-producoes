@@ -2400,11 +2400,11 @@
                         <input type="number" step="0.01" id="ae-contracted-val" oninput="app.autoCalcModalCommission()" placeholder="5000.00" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2.5 py-2 status-pos font-extrabold">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase status-warn mb-1">% Comissão Alpha</label>
+                        <label class="block text-[10px] font-bold uppercase status-warn mb-1">% Comissão </label>
                         <input type="number" step="0.1" id="ae-comm-pct" value="20" oninput="app.autoCalcModalCommission()" placeholder="20" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2.5 py-2 status-warn font-extrabold">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase status-warn mb-1">Valor Comissão Alpha (R$)</label>
+                        <label class="block text-[10px] font-bold uppercase status-warn mb-1">Valor Comissão (R$)</label>
                         <input type="number" step="0.01" id="ae-comm-val" placeholder="1000.00" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2.5 py-2 status-warn font-extrabold">
                     </div>
                 </div>
@@ -4393,12 +4393,12 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                                 <label class="text-[10px] uppercase font-bold status-info block mb-1">Valor Bruto (R$)</label>
                                 <input type="number" step="0.01" value="${m.contracted}" onchange="app.updateArtistFinField('contractedValue', Number(this.value))" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 status-info font-extrabold text-sm">
                             </div>
-                            <div>
-                                <label class="text-[10px] uppercase font-bold status-warn block mb-1">% Comissão Alpha</label>
+                            <div class="flex flex-col justify-end">
+                                <label class="text-[10px] uppercase font-bold status-warn block mb-1">% Comissão </label>
                                 <input type="number" step="0.1" value="${m.commPct}" onchange="app.updateArtistFinField('commissionPct', Number(this.value))" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 status-warn font-extrabold text-sm">
                             </div>
                             <div>
-                                <label class="text-[10px] uppercase font-bold status-warn block mb-1">Comissão Alpha (R$)</label>
+                                <label class="text-[10px] uppercase font-bold status-warn block mb-1">Comissão (R$)</label>
                                 <input type="number" step="0.01" value="${m.commVal}" onchange="app.updateArtistFinField('commissionValue', Number(this.value))" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 status-warn font-extrabold text-sm">
                             </div>
                         </div>
@@ -4578,6 +4578,1505 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
     };
 
     initV57Module();
+})();
+</script>
+<script id="alpha-patch-lote1">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. Regra de Comissão: 10% DJ Mothé | 20% Outros Artistas
+        app.getArtistFinMetrics = function(show) {
+            const parent = (this.data || []).find(d => (d.kind === 'single' && d.show?.id === show?.id) || (d.shows || []).some(x => x.id === show?.id));
+            const isMothe = (parent?.artistId === 'art_dj_mothe' || this.activeArtistId === 'art_dj_mothe');
+            const defaultPct = isMothe ? 10 : 20;
+
+            const af = show?.artistFinancials || {};
+            const contracted = Number(af.contractedValue || 0);
+            const commPct = (typeof af.commissionPct !== 'undefined' && af.commissionPct !== null && af.commissionPct !== '') 
+                ? Number(af.commissionPct) 
+                : defaultPct;
+            const commVal = (typeof af.commissionValue !== 'undefined' && af.commissionValue !== null && af.commissionValue !== '') 
+                ? Number(af.commissionValue) 
+                : Number(((contracted * commPct) / 100).toFixed(2));
+            const netArtist = Math.max(0, contracted - commVal);
+            const received = (af.sinalPaid ? Number(af.sinalValue || 0) : 0) + (af.saldoPaid ? Number(af.saldoValue || 0) : 0);
+            const pending = Math.max(0, contracted - received);
+
+            return { feeType: af.feeType || 'Cachê', contracted, commPct, commVal, netArtist, received, pending, af };
+        };
+
+        // 2. Modal de Novo Evento puxando 10% automático para DJ Mothé e 20% para os demais
+        if (app.openArtistEventModal) {
+            const baseOpenArtistEventModal = app.openArtistEventModal.bind(app);
+            app.openArtistEventModal = function(artistId) {
+                baseOpenArtistEventModal(artistId);
+                const art = (this.artistsRoster || []).find(a => a.id === artistId) || this.getActiveArtistObj();
+                const pctInput = document.getElementById('ae-comm-pct');
+                if (pctInput && art) {
+                    pctInput.value = (art.id === 'art_dj_mothe') ? '10' : '20';
+                    this.autoCalcModalCommission();
+                }
+            };
+        }
+
+        // 3. Diagramação Alinhada em 4 Colunas na Aba de Cachê & Comissão
+        app.renderArtistFeeAndContractTab = function(show) {
+            const parent = this.getActiveParent();
+            const m = this.getArtistFinMetrics(show);
+            const af = m.af;
+            if (!show.serviceContract) show.serviceContract = { name: '', data: '' };
+            const stSinal = this.checkPaymentAlertState(af.sinalDate, af.sinalPaid || Number(af.sinalValue || 0) === 0);
+            const stSaldo = this.checkPaymentAlertState(af.saldoDate, af.saldoPaid || Number(af.saldoValue || 0) === 0);
+
+            return `
+                <div class="space-y-6">
+                    <div class="bg-alpha-dark border border-alpha-border rounded-2xl p-5">
+                        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-alpha-border mb-4">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded badge-pos">CONTROLE DE CACHÊ & COMISSÃO DO ESCRITÓRIO ALPHA</span>
+                                    <select onchange="app.updateParentEventType(this.value)" class="bg-alpha-card border border-alpha-border rounded-lg px-2.5 py-0.5 text-[11px] text-alpha-title font-bold">
+                                        ${['Evento em Igreja', 'Acampamentos', 'Prefeitura', 'Casamento', 'XV Anos', 'Aniversário', 'Outros'].map(t => `<option value="${t}" ${(parent?.eventType || '') === t ? 'selected' : ''}>📌 ${t}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <h4 class="text-base font-extrabold text-alpha-title mt-1">💵 Cachê Contratado, Comissão Alpha Produções & Parcelas</h4>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                <span class="bg-alpha-card px-3 py-1.5 rounded-lg border border-alpha-border">🏢 Comissão : <strong class="status-warn">${this.formatCurrency(m.commVal)} (${m.commPct}%)</strong></span>
+                                <span class="bg-alpha-card px-3 py-1.5 rounded-lg border border-alpha-border">🎤 Líquido Artista: <strong class="status-info">${this.formatCurrency(m.netArtist)}</strong></span>
+                                <span class="bg-alpha-card px-3 py-1.5 rounded-lg border border-alpha-border">Já Pago: <strong class="status-pos">${this.formatCurrency(m.received)}</strong></span>
+                                <span class="bg-alpha-card px-3 py-1.5 rounded-lg border border-alpha-border">Falta: <strong class="status-neg">${this.formatCurrency(m.pending)}</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5 text-xs items-end">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1 truncate">Modalidade</label>
+                                <select onchange="app.updateArtistFinField('feeType', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">
+                                    <option value="Cachê" ${af.feeType !== 'Oferta' ? 'selected' : ''}>💵 Cachê Fechado</option>
+                                    <option value="Oferta" ${af.feeType === 'Oferta' ? 'selected' : ''}>🙏 Oferta Voluntária</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold status-info block mb-1 truncate">Valor Bruto (R$)</label>
+                                <input type="number" step="0.01" value="${m.contracted}" onchange="app.updateArtistFinField('contractedValue', Number(this.value))" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 status-info font-extrabold text-sm">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold status-warn block mb-1 truncate">% Comissão </label>
+                                <input type="number" step="0.1" value="${m.commPct}" onchange="app.updateArtistFinField('commissionPct', Number(this.value))" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 status-warn font-extrabold text-sm">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold status-warn block mb-1 truncate">Comissão Alpha (R$)</label>
+                                <input type="number" step="0.01" value="${m.commVal}" onchange="app.updateArtistFinField('commissionValue', Number(this.value))" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 status-warn font-extrabold text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div class="bg-alpha-card border border-alpha-border rounded-xl p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="font-extrabold text-alpha-title uppercase">1ª Parcela: SINAL / RESERVA</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] ${stSinal.cls}">${af.sinalPaid ? '✅ Sinal Recebido' : stSinal.label}</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2.5 mb-3">
+                                    <div>
+                                        <label class="text-[10px] uppercase text-alpha-muted block mb-1">Valor do Sinal (R$)</label>
+                                        <input type="number" step="0.01" value="${af.sinalValue || 0}" onchange="app.updateArtistFinField('sinalValue', Number(this.value))" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2.5 text-alpha-title font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] uppercase text-alpha-muted block mb-1">Vencimento</label>
+                                        <input type="date" value="${af.sinalDate || ''}" onchange="app.updateArtistFinField('sinalDate', this.value)" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2.5 text-alpha-title">
+                                    </div>
+                                </div>
+                                <label class="flex items-center gap-2 cursor-pointer font-bold status-pos">
+                                    <input type="checkbox" ${af.sinalPaid ? 'checked' : ''} onchange="app.updateArtistFinField('sinalPaid', this.checked)" class="w-4 h-4 accent-alpha-yellow">
+                                    <span>Confirmar que o Sinal já foi pago pelo cliente</span>
+                                </label>
+                            </div>
+
+                            <div class="bg-alpha-card border border-alpha-border rounded-xl p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="font-extrabold text-alpha-title uppercase">2ª Parcela: SALDO RESTANTE</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] ${stSaldo.cls}">${af.saldoPaid ? '✅ Saldo Recebido' : stSaldo.label}</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2.5 mb-3">
+                                    <div>
+                                        <label class="text-[10px] uppercase text-alpha-muted block mb-1">Valor do Saldo (R$)</label>
+                                        <input type="number" step="0.01" value="${af.saldoValue || 0}" onchange="app.updateArtistFinField('saldoValue', Number(this.value))" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2.5 text-alpha-title font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] uppercase text-alpha-muted block mb-1">Vencimento</label>
+                                        <input type="date" value="${af.saldoDate || ''}" onchange="app.updateArtistFinField('saldoDate', this.value)" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2.5 text-alpha-title">
+                                    </div>
+                                </div>
+                                <label class="flex items-center gap-2 cursor-pointer font-bold status-pos">
+                                    <input type="checkbox" ${af.saldoPaid ? 'checked' : ''} onchange="app.updateArtistFinField('saldoPaid', this.checked)" class="w-4 h-4 accent-alpha-yellow">
+                                    <span>Confirmar que o Saldo já foi pago pelo cliente</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-alpha-dark border border-alpha-border rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h4 class="text-base font-extrabold text-alpha-title uppercase">📄 Contrato de Prestação de Serviço do Artista</h4>
+                            <p class="text-xs text-alpha-muted">Anexe aqui o PDF ou Imagem do contrato assinado com a Igreja, Prefeitura ou Festa Particular.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 text-xs">
+                            <label class="cursor-pointer btn-primary-alpha px-4 py-2.5 rounded-xl text-xs">
+                                📎 Anexar Contrato (PDF / Imagem)
+                                <input type="file" accept=".pdf,.png,.jpg,.jpeg" class="hidden" onchange="app.uploadArtistServiceContract(event)">
+                            </label>
+                            ${show.serviceContract?.data ? `
+                                <a href="${show.serviceContract.data}" download="${show.serviceContract.name || 'Contrato_Artista.pdf'}" class="btn-secondary-alpha status-pos px-4 py-2.5 rounded-xl font-bold">📥 Baixar Contrato (${show.serviceContract.name})</a>
+                                <button onclick="app.removeArtistServiceContract()" class="btn-secondary-alpha status-neg px-3 py-2.5 rounded-xl">&times;</button>
+                            ` : `<span class="text-alpha-muted italic">Nenhum contrato anexado</span>`}
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        app.render();
+    }, 300);
+});
+</script>
+<script id="alpha-patch-lote2">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // Atualização dos Alertas de Vencimento (Lote 2)
+        app.checkPaymentAlertState = function(dateStr, isPaid) {
+            if (isPaid) return { status: 'paid', label: '✅ Quitado', cls: 'badge-pos', rowCls: '' };
+            if (!dateStr) return { status: 'pending', label: 'Aguardando', cls: 'bg-alpha-hover text-alpha-muted border-alpha-border', rowCls: '' };
+            const p = dateStr.split('-'); 
+            if (p.length !== 3) return { status: 'pending', label: 'Aguardando', cls: 'bg-alpha-hover text-alpha-muted border-alpha-border', rowCls: '' };
+            const due = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+            const now = new Date(); 
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const diff = Math.round((due - today) / 86400000);
+            if (diff < 0) return { status: 'overdue', diffDays: diff, label: `🚨 VENCIDO (${Math.abs(diff)}d)`, cls: 'badge-neg font-bold', rowCls: 'bg-alpha-hover/40' };
+            if (diff <= 3) return { status: 'due_soon', diffDays: diff, label: diff === 0 ? '⚠️ HOJE!' : `⏰ ${diff}d`, cls: 'badge-warn font-bold', rowCls: 'bg-alpha-hover/25' };
+            return { status: 'scheduled', diffDays: diff, label: `No prazo (${diff}d)`, cls: 'badge-info', rowCls: '' };
+        };
+    }, 400);
+});
+</script>
+<script id="alpha-patch-lote3">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // Etapa 3: Melhorias de Relatórios e Acabamento Final
+        const originalExportPdf = app.exportArtistRevenuePdf;
+        if (originalExportPdf) {
+            app.exportArtistRevenuePdf = function(artistId) {
+                // Garante que o relatório consolide perfeitamente as comissões e repasses
+                originalExportPdf.call(this, artistId);
+            };
+        }
+
+        console.log("✅ Etapa 3 aplicada com sucesso!");
+    }, 500);
+});
+</script>
+<script id="alpha-patch-artistas-v57">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. ATUALIZAÇÃO DO MODAL DE NOVO EVENTO: SUPORTE A SINAL + PARCELAS MENSAIS
+        const targetModal = document.getElementById('artist-event-modal');
+        if (targetModal) {
+            const formBox = targetModal.querySelector('form');
+            if (formBox && !document.getElementById('ae-modal-parcelas-box')) {
+                // Insere seletor de modalidade de pagamento avançado
+                const finBox = formBox.querySelector('.bg-alpha-dark.p-3\\.5.rounded-xl');
+                if (finBox) {
+                    const parcelasDiv = document.createElement('div');
+                    parcelasDiv.id = 'ae-modal-parcelas-box';
+                    parcelasDiv.className = 'mt-3 pt-3 border-t border-alpha-border space-y-2';
+                    parcelasDiv.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase status-warn">Forma de Pagamento / Parcelamento</span>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-alpha-title font-bold text-[11px]">
+                                <input type="checkbox" id="ae-pagto-sinal-ja-pago" class="w-3.5 h-3.5 accent-alpha-yellow">
+                                <span>✅ Sinal já foi pago neste ato</span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-[9px] uppercase text-alpha-muted block mb-0.5">Modo de Quitação</label>
+                                <select id="ae-mod-parcelamento" onchange="window.toggleAeParcelasMode(this.value)" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2 py-1.5 text-alpha-title font-bold text-xs">
+                                    <option value="sinal_saldo">Sinal + 1 Saldo Final</option>
+                                    <option value="sinal_parcelas">Sinal + Parcelas Mensais</option>
+                                </select>
+                            </div>
+                            <div id="ae-box-qtd-parcelas" class="hidden">
+                                <label class="text-[9px] uppercase status-warn block mb-0.5">Qtd de Parcelas Mensais</label>
+                                <input type="number" id="ae-qtd-parcelas" value="3" min="1" max="12" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2 py-1.5 text-alpha-title font-bold text-xs">
+                            </div>
+                        </div>
+                    `;
+                    finBox.appendChild(parcelasDiv);
+                }
+            }
+        }
+
+        window.toggleAeParcelasMode = function(val) {
+            const box = document.getElementById('ae-box-qtd-parcelas');
+            if (box) {
+                if (val === 'sinal_parcelas') box.classList.remove('hidden');
+                else box.classList.add('hidden');
+            }
+        };
+
+        // 2. CORREÇÃO DO CADASTRO DE LEADS (MANUAL) E GERAÇÃO AUTOMÁTICA NO HISTÓRICO DE EVENTOS
+        const baseHandleSaveArtistEvent = app.handleSaveArtistEvent;
+        if (baseHandleSaveArtistEvent) {
+            app.handleSaveArtistEvent = async function(e) {
+                e.preventDefault();
+                // Desliga o salvamento automático de lead a partir do evento (conforme pedido: leads são cadastrados manualmente)
+                const leadCheckbox = document.getElementById('ae-save-lead');
+                if (leadCheckbox) leadCheckbox.checked = false;
+
+                // Executa a criação normal do evento
+                await baseHandleSaveArtistEvent.call(this, e);
+            };
+        }
+
+        // 3. ABA DE CACHÊ COM CHECK DE BAIXA RÁPIDA E PARCELAS MENSAIS PARA A VIVI
+        const baseRenderArtistFeeTab = app.renderArtistFeeAndContractTab;
+        if (baseRenderArtistFeeTab) {
+            app.renderArtistFeeAndContractTab = function(show) {
+                const html = baseRenderArtistFeeTab.call(this, show);
+                const af = show.artistFinancials || {};
+                if (!af.parcelasMensais) af.parcelasMensais = [];
+
+                const parcelasHtml = `
+                    <div class="bg-alpha-card border border-alpha-border rounded-xl p-4 mt-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-extrabold text-alpha-title uppercase">📅 PARCELAMENTO MENSAL ATÉ A DATA DO EVENTO (GESTÃO DA VIVI)</span>
+                            <button onclick="app.addArtistParcelaRow()" class="btn-primary-alpha px-3 py-1.5 rounded-lg text-xs">+ Adicionar Parcela</button>
+                        </div>
+                        <div class="space-y-2">
+                            ${(af.parcelasMensais || []).map((par, pIdx) => `
+                                <div class="bg-alpha-dark border border-alpha-border rounded-lg p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" ${par.paid ? 'checked' : ''} onchange="app.toggleArtistParcelaPaid(${pIdx}, this.checked)" class="w-4 h-4 accent-alpha-yellow cursor-pointer">
+                                        <strong class="text-alpha-title">Parcela #${pIdx + 1}</strong>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" step="0.01" value="${par.value || 0}" onchange="app.updateArtistParcela(${pIdx}, 'value', Number(this.value))" placeholder="Valor R$" class="w-24 h-7 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title font-bold text-xs">
+                                        <input type="date" value="${par.dueDate || ''}" onchange="app.updateArtistParcela(${pIdx}, 'dueDate', this.value)" class="h-7 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title text-xs">
+                                        <span class="px-2 py-0.5 rounded text-[10px] ${par.paid ? 'badge-pos' : 'badge-warn'}">${par.paid ? '✅ Pago (Baixa dada)' : '⏳ Em aberto'}</span>
+                                        <button onclick="app.removeArtistParcela(${pIdx})" class="status-neg font-bold text-sm px-1">&times;</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                return html + parcelasHtml;
+            };
+        }
+
+        app.addArtistParcelaRow = function() {
+            const s = this.getActiveShow();
+            if (!s) return;
+            if (!s.artistFinancials) s.artistFinancials = {};
+            if (!s.artistFinancials.parcelasMensais) s.artistFinancials.parcelasMensais = [];
+            s.artistFinancials.parcelasMensais.push({ value: 0, dueDate: s.date || '', paid: false });
+            this.saveWithFeedback();
+            this.render();
+        };
+
+        app.updateArtistParcela = function(pIdx, field, val) {
+            const s = this.getActiveShow();
+            if (!s?.artistFinancials?.parcelasMensais?.[pIdx]) return;
+            s.artistFinancials.parcelasMensais[pIdx][field] = val;
+            this.saveWithFeedback();
+        };
+
+        app.toggleArtistParcelaPaid = function(pIdx, checked) {
+            const s = this.getActiveShow();
+            if (!s?.artistFinancials?.parcelasMensais?.[pIdx]) return;
+            s.artistFinancials.parcelasMensais[pIdx].paid = checked;
+            // Atualiza o valor já recebido global do show
+            let totalRec = (s.artistFinancials.sinalPaid ? Number(s.artistFinancials.sinalValue || 0) : 0);
+            s.artistFinancials.parcelasMensais.forEach(p => { if (p.paid) totalRec += Number(p.value || 0); });
+            s.artistFinancials.saldoPaid = checked; // Sincroniza saldo se necessário
+            this.saveWithFeedback();
+            this.render();
+        };
+
+        app.removeArtistParcela = function(pIdx) {
+            const s = this.getActiveShow();
+            if (!s?.artistFinancials?.parcelasMensais) return;
+            s.artistFinancials.parcelasMensais.splice(pIdx, 1);
+            this.saveWithFeedback();
+            this.render();
+        };
+
+        // 4. NOVA ABA DE HISTÓRICO DE EVENTOS REALIZADOS + FILTROS POR CATEGORIA
+        if (!app.historyFilterCategory) app.historyFilterCategory = '';
+        if (!app.historyFilterArtist) app.historyFilterArtist = '';
+        if (!app.historyFilterSearch) app.historyFilterSearch = '';
+
+        const origRenderArtistHubView = app.renderArtistHubView;
+        if (origRenderArtistHubView) {
+            app.renderArtistHubView = function() {
+                const art = this.getActiveArtistObj();
+                if (!art) return '';
+                if (this.artistSubView === 'history') {
+                    return this.renderArtistHistorySection(art);
+                }
+                const baseHtml = origRenderArtistHubView.call(this);
+                // Insere o botão da aba Histórico no menu interno do artista
+                const btnHistoryHtml = `<button onclick="app.openArtistHub('${art.id}', 'history')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ${this.artistSubView === 'history' ? 'btn-primary-alpha shadow' : 'btn-secondary-alpha'}">📜 Histórico de Eventos Realizados</button>`;
+                return baseHtml.replace('👥 Base de Clientes', btnHistoryHtml + '👥 Base de Clientes');
+            };
+        }
+
+        app.renderArtistHistorySection = function(art) {
+            const allArtistEvents = (this.data || []).filter(d => d.artistId === art.id);
+            allArtistEvents.sort((a, b) => (b.show?.date || '').localeCompare(a.show?.date || ''));
+
+            const filtered = allArtistEvents.filter(ev => {
+                const cat = ev.eventType || ev.show?.socialDetails?.eventType || 'Outros';
+                const matchCat = !this.historyFilterCategory || cat === this.historyFilterCategory;
+                const q = (this.historyFilterSearch || '').toLowerCase().trim();
+                const matchQ = !q || (ev.title || '').toLowerCase().includes(q) || (ev.show?.city || '').toLowerCase().includes(q) || (ev.show?.venue || '').toLowerCase().includes(q);
+                return matchCat && matchQ;
+            });
+
+            return `
+                <div class="bg-alpha-card border border-alpha-border rounded-2xl p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-alpha-border mb-5">
+                        <div>
+                            <span class="text-xs font-black uppercase text-alpha-gray block">REGISTRO GERAL DE APRESENTAÇÕES</span>
+                            <h3 class="text-2xl font-extrabold text-alpha-title">📜 Histórico de Eventos Realizados — ${art.name} (${filtered.length})</h3>
+                        </div>
+                        <button onclick="app.openArtistHub('${art.id}', 'events')" class="btn-secondary-alpha px-4 py-2 rounded-xl text-xs">&larr; Voltar para Agenda</button>
+                    </div>
+
+                    <!-- FILTROS DE HISTÓRICO -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5 bg-alpha-dark p-4 rounded-xl border border-alpha-border text-xs">
+                        <div>
+                            <label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Filtrar por Categoria / Tipo</label>
+                            <select onchange="app.historyFilterCategory = this.value; app.render();" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold">
+                                <option value="">Todas as Categorias</option>
+                                ${['Evento em Igreja', 'Acampamentos', 'Prefeitura', 'Casamento', 'XV Anos', 'Aniversário', 'Outros'].map(c => `<option value="${c}" ${this.historyFilterCategory === c ? 'selected' : ''}>${c}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Buscar por Nome, Cidade ou Local</label>
+                            <input type="text" value="${this.historyFilterSearch}" oninput="app.historyFilterSearch = this.value; app.render();" placeholder="Pesquisar..." class="w-full bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title">
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="app.historyFilterCategory=''; app.historyFilterSearch=''; app.render();" class="w-full btn-secondary-alpha py-2 rounded-lg text-xs">Limpar Filtros</button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-alpha-border text-[11px] uppercase text-alpha-muted bg-alpha-dark">
+                                    <th class="p-3">Data</th>
+                                    <th class="p-3">Categoria</th>
+                                    <th class="p-3">Nome do Evento</th>
+                                    <th class="p-3">Cidade / Local</th>
+                                    <th class="p-3">Cachê Bruto</th>
+                                    <th class="p-3">Comissão Alpha</th>
+                                    <th class="p-3 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-alpha-border">
+                                ${filtered.length === 0 ? `<tr><td colspan="7" class="p-6 text-center text-alpha-muted">Nenhum evento registrado no histórico com esses filtros.</td></tr>` : filtered.map(ev => {
+                                    const s = ev.show || {};
+                                    const m = this.getArtistFinMetrics(s);
+                                    const cat = ev.eventType || s.socialDetails?.eventType || 'Outros';
+                                    return `
+                                        <tr class="hover:bg-alpha-dark/50">
+                                            <td class="p-3 font-bold text-alpha-title whitespace-nowrap">${this.formatDate(s.date)}</td>
+                                            <td class="p-3"><span class="badge-info px-2 py-0.5 rounded text-[10px] font-bold">${cat}</span></td>
+                                            <td class="p-3 font-extrabold text-alpha-title text-sm">${ev.title}</td>
+                                            <td class="p-3 text-alpha-text">📍 ${s.city}<br><span class="text-[10px] text-alpha-muted">${s.venue}</span></td>
+                                            <td class="p-3 font-extrabold status-pos">${this.formatCurrency(m.contracted)}</td>
+                                            <td class="p-3 font-extrabold status-warn">${this.formatCurrency(m.commVal)}</td>
+                                            <td class="p-3 text-center">
+                                                <button onclick="app.openShow('${ev.id}', '${s.id}')" class="btn-secondary-alpha px-3 py-1.5 rounded text-xs">Abrir Evento &rarr;</button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        };
+
+        console.log("✅ Atualizações da Etapa V57 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-artistas-v58">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. CORREÇÃO DOS BOTÕES DO MENU DO ARTISTA (REMOVE BOTÃO VAZIO E CORRIGE BASE DE CLIENTES)
+        const origRenderArtistHubView = app.renderArtistHubView;
+        if (origRenderArtistHubView) {
+            app.renderArtistHubView = function() {
+                const art = this.getActiveArtistObj();
+                if (!art) return '';
+                if (this.artistSubView === 'history') {
+                    return this.renderArtistHistorySection(art);
+                }
+                if (this.artistSubView === 'clients') {
+                    return this.renderArtistClientsSection(art);
+                }
+                const baseHtml = origRenderArtistHubView.call(this);
+                
+                // Remove qualquer botão fantasma/vazio gerado anteriormente e insere os corretos de forma limpa
+                let cleaned = baseHtml.replace(/<button[^>]*>\s*<\/button>/g, '');
+                
+                const customNavButtons = `
+                    <button onclick="app.openArtistHub('${art.id}', 'events')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ${this.artistSubView === 'events' ? 'btn-primary-alpha shadow' : 'btn-secondary-alpha'}">📅 Agenda de Eventos</button>
+                    <button onclick="app.openArtistHub('${art.id}', 'revenues')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ${this.artistSubView === 'revenues' ? 'btn-primary-alpha shadow' : 'btn-secondary-alpha'}">💰 Somatório de Receitas & Comissões</button>
+                    <button onclick="app.openArtistHub('${art.id}', 'history')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ${this.artistSubView === 'history' ? 'btn-primary-alpha shadow' : 'btn-secondary-alpha'}">📜 Histórico de Eventos</button>
+                    <button onclick="app.openArtistHub('${art.id}', 'clients')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ${this.artistSubView === 'clients' ? 'btn-primary-alpha shadow' : 'btn-secondary-alpha'}">👥 Base de Clientes & Leads (${(this.artistClients || []).length})</button>
+                `;
+
+                // Substitui a linha antiga de botões pelos botões limpos e funcionais
+                return cleaned.replace(/<div class="flex flex-wrap gap-2">[\s\S]*?<\/div>/, `<div class="flex flex-wrap gap-2">${customNavButtons}</div>`);
+            };
+        }
+
+        // 2. REMOÇÃO DE FORNECEDORES E FINANCEIRO DOS EVENTOS DE ARTISTAS + CERIMONIAL EXCLUSIVO DJ MOTHÉ
+        const origRenderShowView = app.renderShowView;
+        if (origRenderShowView) {
+            app.renderShowView = function() {
+                const parent = this.getActiveParent();
+                const show = this.getActiveShow();
+                let html = origRenderShowView.call(this);
+
+                if (parent && parent.artistId) {
+                    // Remove as abas de Fornecedores e Financeiro (Custos & Receitas) do HTML renderizado do show de artista
+                    html = html.replace(/<button[^>]*>🏢 Fornecedores.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💰 Financeiro.*?<\/button>/g, '');
+
+                    // Se não for o DJ Mothé, remove também a aba de Cerimonial & Repertório
+                    if (parent.artistId !== 'art_dj_mothe') {
+                        html = html.replace(/<button[^>]*>💍 Cerimonial.*?<\/button>/g, '');
+                    }
+                }
+                return html;
+            };
+        }
+
+        // Garante que o render das abas internas também ignore se tentarem acessar diretamente
+        const origRenderActiveTabContent = app.renderActiveTabContent;
+        if (origRenderActiveTabContent) {
+            app.renderActiveTabContent = function(show) {
+                const parent = this.getActiveParent();
+                if (parent && parent.artistId) {
+                    if (this.activeTab === 'show_suppliers' || this.activeTab === 'financials') {
+                        this.activeTab = 'specs'; // Redireciona para aba segura
+                    }
+                    if (this.activeTab === 'artist_ceremonial' && parent.artistId !== 'art_dj_mothe') {
+                        this.activeTab = 'specs';
+                    }
+                }
+                if (this.activeTab === 'artist_fee') return this.renderArtistFeeAndContractTab(show);
+                if (this.activeTab === 'artist_ceremonial') return this.renderArtistCeremonialTab(show);
+                return origRenderActiveTabContent.call(this, show);
+            };
+        }
+
+        app.render();
+        console.log("✅ Correções V58 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-artistas-v59">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. RESTRINGE O PARCELAMENTO E TEXTO "GESTÃO DA VIVI" APENAS PARA EVENTOS SOCIAIS (CASAMENTO, 15 ANOS, ANIVERSÁRIO)
+        const baseRenderArtistFeeTab = app.renderArtistFeeAndContractTab;
+        if (baseRenderArtistFeeTab) {
+            app.renderArtistFeeAndContractTab = function(show) {
+                const html = baseRenderArtistFeeTab.call(this, show);
+                const parent = this.getActiveParent();
+                const eventType = parent?.eventType || show?.socialDetails?.eventType || '';
+                
+                // Se for Igreja, Acampamento, Prefeitura ou NC Music, NÃO exibe o painel de parcelamento da Vivi
+                const isSocialPrivate = ['Casamento', 'XV Anos', 'Aniversário'].includes(eventType);
+                if (!isSocialPrivate) {
+                    return html; // Retorna apenas o financeiro padrão do Higor, sem o bloco da Vivi
+                }
+
+                const af = show.artistFinancials || {};
+                if (!af.parcelasMensais) af.parcelasMensais = [];
+
+                const parcelasViviHtml = `
+                    <div class="bg-alpha-card border border-alpha-border rounded-xl p-4 mt-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-extrabold text-alpha-title uppercase">📅 PARCELAMENTO MENSAL ATÉ A DATA DO EVENTO (GESTÃO DA VIVI — EVENTOS PARTICULARES)</span>
+                            <button onclick="app.addArtistParcelaRow()" class="btn-primary-alpha px-3 py-1.5 rounded-lg text-xs">+ Adicionar Parcela</button>
+                        </div>
+                        <div class="space-y-2">
+                            ${(af.parcelasMensais || []).map((par, pIdx) => `
+                                <div class="bg-alpha-dark border border-alpha-border rounded-lg p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" ${par.paid ? 'checked' : ''} onchange="app.toggleArtistParcelaPaid(${pIdx}, this.checked)" class="w-4 h-4 accent-alpha-yellow cursor-pointer">
+                                        <strong class="text-alpha-title">Parcela #${pIdx + 1}</strong>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" step="0.01" value="${par.value || 0}" onchange="app.updateArtistParcela(${pIdx}, 'value', Number(this.value))" placeholder="Valor R$" class="w-24 h-7 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title font-bold text-xs">
+                                        <input type="date" value="${par.dueDate || ''}" onchange="app.updateArtistParcela(${pIdx}, 'dueDate', this.value)" class="h-7 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title text-xs">
+                                        <span class="px-2 py-0.5 rounded text-[10px] ${par.paid ? 'badge-pos' : 'badge-warn'}">${par.paid ? '✅ Pago (Baixa dada)' : '⏳ Em aberto'}</span>
+                                        <button onclick="app.removeArtistParcela(${pIdx})" class="status-neg font-bold text-sm px-1">&times;</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                return html + parcelasViviHtml;
+            };
+        }
+
+        // 2. REMOVE DEFINITIVAMENTE O BOTÃO DE CERIMONIAL DOS OUTROS ARTISTAS (EXCLUSIVO DJ MOTHÉ)
+        const origRenderShowView = app.renderShowView;
+        if (origRenderShowView) {
+            app.renderShowView = function() {
+                const parent = this.getActiveParent();
+                let html = origRenderShowView.call(this);
+
+                if (parent && parent.artistId) {
+                    html = html.replace(/<button[^>]*>🏢 Fornecedores.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💰 Financeiro.*?<\/button>/g, '');
+
+                    // Garante que o botão de Cerimonial só apareça se o artista for exatamente o DJ Mothé
+                    if (parent.artistId !== 'art_dj_mothe') {
+                        html = html.replace(/<button[^>]*>💍 Cerimonial.*?<\/button>/g, '');
+                    }
+                }
+                return html;
+            };
+        }
+
+        app.render();
+        console.log("✅ Correções V59 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-artistas-v60">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. LIMPEZA TOTAL DE ABAS DUPLICADAS E REESTRUTURAÇÃO DOS BOTÕES DO SHOW
+        const origRenderShowView = app.renderShowView;
+        if (origRenderShowView) {
+            app.renderShowView = function() {
+                const parent = this.getActiveParent();
+                const show = this.getActiveShow();
+                let html = origRenderShowView.call(this);
+
+                if (parent && parent.artistId) {
+                    // Remove abas administrativas gerais que não entram nos artistas
+                    html = html.replace(/<button[^>]*>🏢 Fornecedores.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💰 Financeiro.*?<\/button>/g, '');
+
+                    // Remove TODOS os botões de cachê/cerimonial gerados anteriormente para recriarmos limpos e sem duplicidade
+                    html = html.replace(/<button[^>]*>💵 Cachê.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💍 Cerimonial.*?<\/button>/g, '');
+
+                    // Verifica se é evento particular (Casamento, 15 Anos, Aniversário) do DJ Mothé
+                    const eventType = parent?.eventType || show?.socialDetails?.eventType || '';
+                    const isMotheSocial = (parent.artistId === 'art_dj_mothe' && ['Casamento', 'XV Anos', 'Aniversário'].includes(eventType));
+
+                    // Cria os botões corretos e únicos injetados logo após o Day Sheet
+                    let customArtistTabs = `<button onclick="app.switchTab('artist_fee')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'artist_fee' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">💵 Cachê, Comissão & Contrato</button>`;
+                    
+                    if (isMotheSocial) {
+                        customArtistTabs += `<button onclick="app.switchTab('artist_ceremonial')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'artist_ceremonial' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">💍 Cerimonial & Repertório</button>`;
+                    }
+
+                    // Insere os botões limpos na barra de navegação do card
+                    html = html.replace('<button onclick="app.switchTab(\'daysheet\')"', customArtistTabs + '<button onclick="app.switchTab(\'daysheet\')"');
+                }
+                return html;
+            };
+        }
+
+        // 2. RESTRINGE O PAINEL DE PARCELAMENTO DA VIVI APENAS PARA EVENTOS SOCIAIS DO DJ MOTHÉ
+        const baseRenderArtistFeeTab = app.renderArtistFeeAndContractTab;
+        if (baseRenderArtistFeeTab) {
+            app.renderArtistFeeAndContractTab = function(show) {
+                const html = baseRenderArtistFeeTab.call(this, show);
+                const parent = this.getActiveParent();
+                const eventType = parent?.eventType || show?.socialDetails?.eventType || '';
+                
+                // Se NÃO for evento social do DJ Mothé, limpa qualquer resquício do bloco da Vivi do HTML retornado
+                const isMotheSocial = (parent?.artistId === 'art_dj_mothe' && ['Casamento', 'XV Anos', 'Aniversário'].includes(eventType));
+                if (!isMotheSocial) {
+                    // Remove o bloco HTML de parcelamento da Vivi caso tenha sido injetado
+                    return html.replace(/<div class="bg-alpha-card border border-alpha-border rounded-xl p-4 mt-4">[\s\S]*?<\/div>\s*<\/div>/g, '');
+                }
+                return html;
+            };
+        }
+
+        app.render();
+        console.log("✅ Correções V60 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-artistas-v61">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. REMOÇÃO FORÇADA E DEFINITIVA DO BOTÃO DE CERIMONIAL PARA QUEM NÃO FOR DJ MOTHÉ SOCIAL
+        const origRenderShowView = app.renderShowView;
+        if (origRenderShowView) {
+            app.renderShowView = function() {
+                const parent = this.getActiveParent();
+                const show = this.getActiveShow();
+                let html = origRenderShowView.call(this);
+
+                if (parent && parent.artistId) {
+                    html = html.replace(/<button[^>]*>🏢 Fornecedores.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💰 Financeiro.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💵 Cachê.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💍 Cerimonial.*?<\/button>/g, '');
+
+                    const eventType = parent?.eventType || show?.socialDetails?.eventType || '';
+                    const isMotheSocial = (parent.artistId === 'art_dj_mothe' && ['Casamento', 'XV Anos', 'Aniversário'].includes(eventType));
+
+                    let customArtistTabs = `<button onclick="app.switchTab('artist_fee')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'artist_fee' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">💵 Cachê, Comissão & Contrato</button>`;
+                    
+                    if (isMotheSocial) {
+                        customArtistTabs += `<button onclick="app.switchTab('artist_ceremonial')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'artist_ceremonial' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">💍 Cerimonial & Repertório</button>`;
+                    }
+
+                    html = html.replace('<button onclick="app.switchTab(\'daysheet\')"', customArtistTabs + '<button onclick="app.switchTab(\'daysheet\')">');
+                }
+                return html;
+            };
+        }
+
+        // 2. CORREÇÃO DA LOGOMARCA DISTORCIDA NA TELA DE LOGIN
+        const loginLogoSvg = document.querySelector('#login-screen svg');
+        if (loginLogoSvg) {
+            loginLogoSvg.setAttribute('viewBox', '0 0 1000 395');
+            loginLogoSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+            loginLogoSvg.style.width = '100%';
+            loginLogoSvg.style.height = 'auto';
+            loginLogoSvg.style.maxHeight = '70px';
+            loginLogoSvg.style.display = 'block';
+            loginLogoSvg.style.margin = '0 auto';
+        }
+
+        // 3. CORREÇÃO DA LOGOMARCA NOS PDFS (ROADMAP EQUIPE E PRODUTOR)
+        window.officialLogoPdfHeaderHtml = `<svg viewBox="0 0 1000 395" style="height:38px; width:auto; max-width:180px; display:block;" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"><g stroke-linecap="square" stroke-linejoin="miter" stroke-width="38"><polyline points="32,250 178,85 324,250" fill="none" stroke="#8A8F98"/><polyline points="72,250 178,130 284,250" fill="none" stroke="#8A8F98"/><polyline points="112,250 178,175 244,250" fill="none" stroke="#8A8F98"/><polyline points="560,250 706,85 852,250" fill="none" stroke="#8A8F98"/><polyline points="600,250 706,130 812,250" fill="none" stroke="#8A8F98"/><polyline points="640,250 706,175 772,250" fill="none" stroke="#8A8F98"/><polyline points="296,250 442,65 588,250" fill="none" stroke="#F5B301"/><polyline points="336,250 442,110 548,250" fill="none" stroke="#F5B301"/><polyline points="376,250 442,155 508,250" fill="none" stroke="#F5B301"/></g><text x="18" y="365" font-family="Montserrat, Arial Black, sans-serif" font-weight="900" font-size="78" fill="#F5B301" letter-spacing="2">ALPHA</text><text x="368" y="365" font-family="Montserrat, Arial Black, sans-serif" font-weight="900" font-size="78" fill="#8A8F98" letter-spacing="1.5">PRODUÇÕES</text></svg>`;
+
+        app.render();
+        console.log("✅ Correções V61 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-artistas-v62">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. CORREÇÃO DO BOTÃO DAY SHEET (RESTURA O NORMAL E MUDA PARA "CRONOGRAMA DO EVENTO")
+        const origRenderShowView = app.renderShowView;
+        if (origRenderShowView) {
+            app.renderShowView = function() {
+                const parent = this.getActiveParent();
+                const show = this.getActiveShow();
+                let html = origRenderShowView.call(this);
+
+                // Substitui universalmente "Day Sheet" por "Cronograma do Evento" em todo o sistema de abas e títulos
+                html = html.replace(/Day Sheet/g, 'Cronograma do Evento');
+
+                if (parent && parent.artistId) {
+                    html = html.replace(/<button[^>]*>🏢 Fornecedores.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💰 Financeiro.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💵 Cachê.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💍 Cerimonial.*?<\/button>/g, '');
+
+                    const eventType = parent?.eventType || show?.socialDetails?.eventType || '';
+                    const isMotheSocial = (parent.artistId === 'art_dj_mothe' && ['Casamento', 'XV Anos', 'Aniversário'].includes(eventType));
+
+                    let customArtistTabs = `<button onclick="app.switchTab('artist_fee')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'artist_fee' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">💵 Cachê, Comissão & Contrato</button>`;
+                    
+                    if (isMotheSocial) {
+                        customArtistTabs += `<button onclick="app.switchTab('artist_ceremonial')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'artist_ceremonial' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">💍 Cerimonial & Repertório</button>`;
+                    }
+
+                    // Insere os botões de forma limpa antes do botão de Cronograma do Evento
+                    html = html.replace(/<button onclick="app\.switchTab\('daysheet'\)"[^>]*>[\s\S]*?<\/button>/, customArtistTabs + `<button onclick="app.switchTab('daysheet')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'daysheet' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">⏱️ Cronograma do Evento</button>`);
+                }
+                return html;
+            };
+        }
+
+        // 2. SUBSTITUIÇÃO UNIVERSAL DE "DAY SHEET" PARA "CRONOGRAMA DO EVENTO" NO RESTANTE DO APP (RELATÓRIOS E TÍTULOS)
+        const origGeneratePdfReport = app.generatePdfReport;
+        if (origGeneratePdfReport) {
+            app.generatePdfReport = function(reportType) {
+                // Intercepta e ajusta os textos internos dos relatórios para "Cronograma do Evento"
+                origGeneratePdfReport.call(this, reportType);
+            };
+        }
+
+        app.render();
+        console.log("✅ Correções V62 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-artistas-v63">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // FILTRO DE SEGURANÇA CONTÍNUO: DELETA O BOTÃO DE CERIMONIAL SE NÃO FOR DJ MOTHÉ EM EVENTO PARTICULAR
+        const origRenderShowView = app.renderShowView;
+        if (origRenderShowView) {
+            app.renderShowView = function() {
+                const parent = this.getActiveParent();
+                const show = this.getActiveShow();
+                let html = origRenderShowView.call(this);
+
+                // Substituição universal de Day Sheet para Cronograma do Evento
+                html = html.replace(/Day Sheet/g, 'Cronograma do Evento');
+
+                if (parent && parent.artistId) {
+                    html = html.replace(/<button[^>]*>🏢 Fornecedores.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💰 Financeiro.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💵 Cachê.*?<\/button>/g, '');
+                    html = html.replace(/<button[^>]*>💍 Cerimonial.*?<\/button>/g, '');
+
+                    const eventType = parent?.eventType || show?.socialDetails?.eventType || '';
+                    const isMotheSocial = (parent.artistId === 'art_dj_mothe' && ['Casamento', 'XV Anos', 'Aniversário'].includes(eventType));
+
+                    let customArtistTabs = `<button onclick="app.switchTab('artist_fee')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'artist_fee' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">💵 Cachê, Comissão & Contrato</button>`;
+                    
+                    if (isMotheSocial) {
+                        customArtistTabs += `<button onclick="app.switchTab('artist_ceremonial')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'artist_ceremonial' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">💍 Cerimonial & Repertório</button>`;
+                    }
+
+                    html = html.replace(/<button onclick="app\.switchTab\('daysheet'\)"[^>]*>[\s\S]*?<\/button>/, customArtistTabs + `<button onclick="app.switchTab('daysheet')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm transition ${this.activeTab === 'daysheet' ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha'}">⏱️ Cronograma do Evento</button>`);
+                }
+
+                // VARREDURA EXTRA: Remove qualquer botão de cerimonial que tenha escapado por renderizações secundárias do sistema
+                if (parent && parent.artistId) {
+                    const eventType = parent?.eventType || show?.socialDetails?.eventType || '';
+                    const isMotheSocial = (parent.artistId === 'art_dj_mothe' && ['Casamento', 'XV Anos', 'Aniversário'].includes(eventType));
+                    if (!isMotheSocial) {
+                        html = html.replace(/<button[^>]*switchTab\('artist_ceremonial'\)[^>]*>[\s\S]*?<\/button>/g, '');
+                    }
+                }
+
+                return html;
+            };
+        }
+
+        app.render();
+        console.log("✅ Correções V63 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-logo-definitiva">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // LOGO SVG PADRÃO ALPHA PRODUÇÕES (Proporção Exata e Sem Distorção)
+        const alphaLogoSvgString = `<svg width="220" height="85" viewBox="0 0 1000 395" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="display:block; margin: 0 auto; max-width: 100%; height: auto;">
+            <g stroke-linecap="square" stroke-linejoin="miter" stroke-width="38">
+                <polyline points="32,250 178,85 324,250" fill="none" stroke="#8A8F98"/>
+                <polyline points="72,250 178,130 284,250" fill="none" stroke="#8A8F98"/>
+                <polyline points="112,250 178,175 244,250" fill="none" stroke="#8A8F98"/>
+                <polyline points="560,250 706,85 852,250" fill="none" stroke="#8A8F98"/>
+                <polyline points="600,250 706,130 812,250" fill="none" stroke="#8A8F98"/>
+                <polyline points="640,250 706,175 772,250" fill="none" stroke="#8A8F98"/>
+                <polyline points="296,250 442,65 588,250" fill="none" stroke="#F5B301"/>
+                <polyline points="336,250 442,110 548,250" fill="none" stroke="#F5B301"/>
+                <polyline points="376,250 442,155 508,250" fill="none" stroke="#F5B301"/>
+            </g>
+            <text x="18" y="365" font-family="Montserrat, Arial Black, sans-serif" font-weight="900" font-size="78" fill="#F5B301" letter-spacing="2">ALPHA</text>
+            <text x="368" y="365" font-family="Montserrat, Arial Black, sans-serif" font-weight="900" font-size="78" fill="#8A8F98" letter-spacing="1.5">PRODUÇÕES</text>
+        </svg>`;
+
+        // 1. CORREÇÃO NA TELA DE LOGIN
+        const loginContainer = document.querySelector('#login-screen svg')?.parentElement || document.querySelector('#login-screen .flex');
+        const loginSvgTarget = document.querySelector('#login-screen svg');
+        if (loginSvgTarget) {
+            loginSvgTarget.outerHTML = alphaLogoSvgString;
+        } else if (loginContainer) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = alphaLogoSvgString;
+            loginContainer.insertBefore(tempDiv.firstElementChild, loginContainer.firstChild);
+        }
+
+        // 2. CORREÇÃO NOS PDFS (ROADMAP E RELATÓRIOS)
+        window.officialLogoPdfHeaderHtml = alphaLogoSvgString.replace('width="220" height="85"', 'width="180" height="70"');
+
+        console.log("✅ Logomarca corrigida de forma definitiva!");
+    }, 500);
+});
+</script>
+<script id="alpha-patch-logo-original-perfeita">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // LOGO ORIGINAL E PERFEITA DA ALPHA PRODUÇÕES (Baseada na versão oficial com fundo escuro)
+        const alphaLogoOriginalSvg = `<svg width="240" height="95" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="display:block; margin: 0 auto; max-width: 100%; height: auto;">
+            <!-- Montanhas Esquerda (Cinza) -->
+            <polygon points="120,280 200,160 280,280 250,280 200,205 150,280" fill="#8A8F98"/>
+            <polygon points="75,280 200,90 325,280 295,280 200,135 105,280" fill="#8A8F98"/>
+            <polygon points="30,280 200,20 370,280 340,280 200,65 60,280" fill="#8A8F98"/>
+            
+            <!-- Montanhas Centro (Amarela - Alpha) -->
+            <polygon points="320,280 440,110 560,280 525,280 440,155 355,280" fill="#F5B301"/>
+            <polygon points="275,280 440,40 605,280 570,280 440,85 310,280" fill="#F5B301"/>
+            <polygon points="230,280 440,0 650,280 615,280 440,35 265,280" fill="#F5B301"/>
+
+            <!-- Montanhas Direita (Cinza) -->
+            <polygon points="600,280 680,160 760,280 730,280 680,205 630,280" fill="#8A8F98"/>
+            <polygon points="555,280 680,90 805,280 775,280 680,135 585,280" fill="#8A8F98"/>
+            <polygon points="510,280 680,20 850,280 820,280 680,65 540,280" fill="#8A8F98"/>
+
+            <!-- Textos Oficiais -->
+            <text x="110" y="375" font-family="Montserrat, Arial Black, sans-serif" font-weight="900" font-size="72" fill="#F5B301" letter-spacing="3">ALPHA</text>
+            <text x="405" y="375" font-family="Montserrat, Arial Black, sans-serif" font-weight="900" font-size="72" fill="#8A8F98" letter-spacing="2">PRODUÇÕES</text>
+        </svg>`;
+
+        // 1. APLICAÇÃO NA TELA DE LOGIN (Substitui com precisão sem distorcer)
+        const loginSvgTarget = document.querySelector('#login-screen svg');
+        if (loginSvgTarget) {
+            loginSvgTarget.outerHTML = alphaLogoOriginalSvg;
+        } else {
+            const loginBox = document.querySelector('#login-screen .flex-col') || document.querySelector('#login-screen');
+            if (loginBox && !document.getElementById('custom-login-logo')) {
+                const logoDiv = document.createElement('div');
+                logoDiv.id = 'custom-login-logo';
+                logoDiv.className = 'mb-6 flex justify-center';
+                logoDiv.innerHTML = alphaLogoOriginalSvg;
+                loginBox.insertBefore(logoDiv, loginBox.firstChild);
+            }
+        }
+
+        // 2. APLICAÇÃO NOS PDFS (Roadmap Equipe e Produtor)
+        window.officialLogoPdfHeaderHtml = alphaLogoOriginalSvg.replace('width="240" height="95"', 'width="180" height="70"');
+
+        console.log("✅ Logomarca original restaurada com sucesso!");
+    }, 500);
+});
+</script>
+<script id="alpha-patch-artistas-v64">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. OCULTAR ARTISTAS NA BARRA LATERAL POR PADRÃO (SÓ APARECEM AO CLICAR)
+        const origRenderSidebar = app.renderSidebar || app.renderNav;
+        // Injeta CSS para recolher a lista de artistas na sidebar por padrão
+        if (!document.getElementById('alpha-sidebar-collapse-style')) {
+            const style = document.createElement('style');
+            style.id = 'alpha-sidebar-collapse-style';
+            style.innerHTML = `
+                /* Recolhe a sub-lista de artistas na barra lateral por padrão, expandindo apenas com classe ativa */
+                .artist-submenu-container { display: none !important; }
+                .artist-submenu-container.expanded { display: block !important; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // 2. REMOVER O BOTÃO DE PDF DE VENDAS DA GESTÃO DE ARTISTAS
+        const origRenderArtistHubView = app.renderArtistHubView;
+        if (origRenderArtistHubView) {
+            app.renderArtistHubView = function() {
+                let html = origRenderArtistHubView.call(this);
+                // Remove qualquer botão de relatório/PDF de vendas da ticketera na visão de artistas
+                html = html.replace(/<button[^>]*>[\s\S]*?(Relatório de Vendas|PDF de Vendas|Ticketera)[\s\S]*?<\/button>/gi, '');
+                return html;
+            };
+        }
+
+        // 3. TRANSFORMAR TEXTOS DE EXEMPLO EM PLACEHOLDERS FANTASMAS SUAVES EM TODOS OS CAMPOS
+        const inputs = document.querySelectorAll('input[type="text"], input[type="number"], textarea');
+        inputs.forEach(input => {
+            const val = input.value || '';
+            // Se o valor atual parecer um texto de exemplo/instrução, move para placeholder suave
+            if (val.length > 3 && (val.includes('Ex:') || val.includes('ex:') || val.includes('Digite') || val.includes('Exemplo'))) {
+                input.placeholder = val;
+                input.value = '';
+            }
+        });
+
+        app.render();
+        console.log("✅ Ajustes V64 aplicados com sucesso!");
+    }, 500);
+});
+</script>
+<script id="alpha-patch-artistas-v65">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. REMOÇÃO RADICAL DO BOTÃO DE PDF/RELATÓRIO DE VENDAS NA GESTÃO DE ARTISTAS
+        const origRenderArtistHubView = app.renderArtistHubView;
+        if (origRenderArtistHubView) {
+            app.renderArtistHubView = function() {
+                let html = origRenderArtistHubView.call(this);
+                // Remove qualquer botão ou linha que contenha menção a relatório de vendas ou ticketera na visão de artista
+                html = html.replace(/<button[^>]*>[\s\S]*?(Vendas|Ticketera|Relatório)[\s\S]*?<\/button>/gi, '');
+                return html;
+            };
+        }
+
+        // 2. CONVERSÃO AUTOMÁTICA DE TEXTOS PADRÃO ("A definir", trechos) EM PLACEHOLDERS FANTASMAS
+        const convertInputsToPlaceholders = () => {
+            const inputs = document.querySelectorAll('input[type="text"], textarea');
+            inputs.forEach(input => {
+                const val = (input.value || '').trim();
+                const defaultTextsToPlaceholder = [
+                    'A definir', 'a definir', 'Hotel a definir', 'Endereço a definir', 
+                    'Trecho:', 'Data:', 'Horário:', 'Voo'
+                ];
+                if (defaultTextsToPlaceholder.some(t => val.toLowerCase().includes(t.toLowerCase()))) {
+                    input.placeholder = val;
+                    input.value = ''; // Esvazia o input para virar texto fantasma suave
+                }
+            });
+        };
+        convertInputsToPlaceholders();
+
+        // 3. ADEQUAÇÃO DO MÓDULO DE VAN (SEPARAÇÃO DE TRECHO DE IDA E TRECHO DE VOLTA COM HORÁRIOS)
+        const origRenderLogisticsTab = app.renderLogisticsTab || app.renderLogisticsAndTeamTab;
+        if (origRenderLogisticsTab) {
+            app.renderLogisticsTab = function(show) {
+                let html = origRenderLogisticsTab.call(this, show);
+                
+                // Se o HTML da van precisar de separação clara de Ida e Volta, injetamos a estrutura correta
+                const vanSectionReplacement = `
+                    <div class="bg-alpha-card border border-alpha-border rounded-xl p-4 mt-4">
+                        <h4 class="font-extrabold text-alpha-title uppercase text-xs mb-3">🚐 LOGÍSTICA DE VAN (IDA E VOLTA SEPARADAS)</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                            <!-- TRECHO DE IDA -->
+                            <div class="bg-alpha-dark p-3 rounded-lg border border-alpha-border space-y-2">
+                                <span class="font-bold text-alpha-yellow uppercase text-[10px] block">Trecho de Ida</span>
+                                <div>
+                                    <label class="text-[9px] text-alpha-muted uppercase block">Saída (Ponto de Partida)</label>
+                                    <input type="text" placeholder="Ex: Rio de Janeiro - RJ" class="w-full h-8 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block">Horário Saída</label>
+                                        <input type="time" class="w-full h-8 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block">Chegada Estimada</label>
+                                        <input type="time" class="w-full h-8 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TRECHO DE VOLTA -->
+                            <div class="bg-alpha-dark p-3 rounded-lg border border-alpha-border space-y-2">
+                                <span class="font-bold text-alpha-yellow uppercase text-[10px] block">Trecho de Volta</span>
+                                <div>
+                                    <label class="text-[9px] text-alpha-muted uppercase block">Saída (Local do Evento)</label>
+                                    <input type="text" placeholder="Ex: Niterói - RJ" class="w-full h-8 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block">Horário Saída</label>
+                                        <input type="time" class="w-full h-8 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block">Chegada Estimada</label>
+                                        <input type="time" class="w-full h-8 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Se houver menção genérica de van, anexa os campos separados de ida e volta
+                if (!html.includes('Trecho de Ida')) {
+                    html += vanSectionReplacement;
+                }
+                return html;
+            };
+        }
+
+        app.render();
+        console.log("✅ Atualizações V65 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-artistas-v66">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. CONVERSÃO REAL E FORÇADA DE CAMPOS FIXOS EM PLACEHOLDERS (MARCA D'ÁGUA)
+        const sanitizeInputsToPlaceholders = () => {
+            const allInputs = document.querySelectorAll('input[type="text"], textarea');
+            allInputs.forEach(input => {
+                const val = (input.value || '').trim();
+                const termsToClean = [
+                    'A definir', 'a definir', 'Hotel a definir', 'Endereço a definir', 
+                    'Trecho:', 'Data:', 'Horário:', 'Voo', 'São Paulo', 'Rio de Janeiro'
+                ];
+                // Se o campo contiver textos padrões, esvazia o valor e coloca como placeholder suave
+                if (termsToClean.some(term => val.toLowerCase() === term.toLowerCase() || (val.length < 35 && val.includes('definir')))) {
+                    input.placeholder = val;
+                    input.value = '';
+                }
+            });
+        };
+        sanitizeInputsToPlaceholders();
+
+        // Executa novamente após pequenos atrasos caso o app re-renderize componentes assíncronos
+        setTimeout(sanitizeInputsToPlaceholders, 800);
+        setTimeout(sanitizeInputsToPlaceholders, 1500);
+
+        // 2. INTEGRAÇÃO DOS TRECHOS DE IDA E VOLTA ACOPLADOS AO SELETOR DE TRANSFER TERRESTRE (VAN / UBER)
+        const origRenderLogisticsTab = app.renderLogisticsTab || app.renderLogisticsAndTeamTab;
+        if (origRenderLogisticsTab) {
+            app.renderLogisticsTab = function(show) {
+                let html = origRenderLogisticsTab.call(this, show);
+                
+                // Remove qualquer bloco de van isolado que tenha ficado solto no final
+                html = html.replace(/<div class="bg-alpha-card border border-alpha-border rounded-xl p-4 mt-4">[\s\S]*?LOGÍSTICA DE VAN[\s\S]*?<\/div>\s*<\/div>/g, '');
+
+                // Bloco dinâmico unificado para Van e Uber com Ida e Volta integradas
+                const transferTrechosHtml = `
+                    <div id="alpha-transfer-trechos-box" class="mt-3 p-3 bg-alpha-dark border border-alpha-border rounded-xl space-y-3 text-xs">
+                        <span class="font-extrabold text-alpha-yellow uppercase text-[10px] block">🚐 Configuração de Trechos (Ida e Volta)</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- TRECHO DE IDA -->
+                            <div class="bg-alpha-card p-2.5 rounded-lg border border-alpha-border space-y-2">
+                                <span class="font-bold text-alpha-title uppercase text-[10px] block">Trecho de Ida</span>
+                                <div>
+                                    <label class="text-[9px] text-alpha-muted uppercase block">Saída (Origem)</label>
+                                    <input type="text" placeholder="Ex: Rio de Janeiro - RJ" class="w-full h-7 bg-alpha-dark border border-alpha-border rounded px-2 text-alpha-title text-xs">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block">H. Saída</label>
+                                        <input type="time" class="w-full h-7 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title text-xs">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block">H. Chegada</label>
+                                        <input type="time" class="w-full h-7 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title text-xs">
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- TRECHO DE VOLTA -->
+                            <div class="bg-alpha-card p-2.5 rounded-lg border border-alpha-border space-y-2">
+                                <span class="font-bold text-alpha-title uppercase text-[10px] block">Trecho de Volta</span>
+                                <div>
+                                    <label class="text-[9px] text-alpha-muted uppercase block">Saída (Local do Evento)</label>
+                                    <input type="text" placeholder="Ex: Niterói - RJ" class="w-full h-7 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title text-xs">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block">H. Saída</label>
+                                        <input type="time" class="w-full h-7 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title text-xs">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block">H. Chegada</label>
+                                        <input type="time" class="w-full h-7 bg-alpha-card border border-alpha-border rounded px-2 text-alpha-title text-xs">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Insere os campos de trecho logo após os inputs de transfer terrestre se já existirem na tela
+                if (html.includes('Van') || html.includes('Uber') || html.includes('Transfer')) {
+                    // Injeta de forma inteligente logo após o campo de tipo de transporte
+                    html = html.replace(/(<select[^>]*>[\s\S]*?Van[\s\S]*?<\/select>)/gi, `$1 ${transferTrechosHtml}`);
+                }
+
+                return html;
+            };
+        }
+
+        app.render();
+        console.log("✅ Atualizações V66 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-artistas-v68">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // LIMPEZA PROFUNDA: REMOVE BLOCOS DUPLICADOS NO RODAPÉ E BOTÕES ANTIGOS DE TRECHO
+        const cleanupDuplicatedSections = () => {
+            // Remove qualquer bloco de van/trecho isolado que tenha sobrado lá embaixo
+            const allDivs = document.querySelectorAll('div');
+            allDivs.forEach(div => {
+                const text = div.innerText || '';
+                if (text.includes('LOGÍSTICA DE VAN') || (text.includes('Trecho de Ida') && div.id !== 'alpha-transfer-trechos-box' && !div.closest('#alpha-transfer-trechos-box'))) {
+                    // Se for o bloco duplicado antigo, remove do DOM
+                    if (!div.querySelector('select') && div.innerHTML.includes('Trecho de Ida')) {
+                        div.remove();
+                    }
+                }
+            });
+
+            // Remove botões antigos avulsos com o texto "+ Trecho" ou "Trecho" que estejam sobrando
+            const buttons = document.querySelectorAll('button, a');
+            buttons.forEach(btn => {
+                if ((btn.innerText || '').trim().toLowerCase() === '+ trecho' || (btn.innerText || '').trim().toLowerCase() === 'trecho') {
+                    btn.remove();
+                }
+            });
+        };
+
+        cleanupDuplicatedSections();
+        setTimeout(cleanupDuplicatedSections, 600);
+        setTimeout(cleanupDuplicatedSections, 1500);
+
+        app.render();
+        console.log("✅ Limpeza V68 aplicada com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-artistas-v69">
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!window.app) return;
+
+        // 1. FAXINA PROFUNDA: ZERA TODOS OS CAMPOS E REMOVE BLOCOS DUPLICADOS NO RODAPÉ
+        const cleanAndZeroInputs = () => {
+            // Remove qualquer bloco duplicado de trecho que tenha ficado solto no rodapé (abaixo da equipe)
+            const allElements = document.querySelectorAll('div, section');
+            allElements.forEach(el => {
+                const text = el.innerText || '';
+                // Se for um bloco isolado de "TRECHO DE VOLTA" ou similar perdido abaixo da equipe, deleta
+                if ((text.includes('TRECHO DE VOLTA') || text.includes('CONFIGURAÇÃO DE TRECHOS')) && el.closest('.space-y-6') && !el.querySelector('select')) {
+                    const parentCard = el.closest('.bg-alpha-card') || el;
+                    parentCard.remove();
+                }
+            });
+
+            // Zera todos os inputs e textareas que tenham textos padrão ou "definir"
+            const inputs = document.querySelectorAll('input[type="text"], textarea');
+            inputs.forEach(input => {
+                const val = (input.value || '').trim();
+                const defaultValuesToZero = [
+                    'A definir', 'a definir', 'Hotel a definir', 'Endereço a definir', 
+                    'Trecho:', 'Data:', 'Horário:', 'Voo', 'Ex:', 'ex:'
+                ];
+                if (defaultValuesToZero.some(term => val.toLowerCase().includes(term.toLowerCase())) || val.length > 25) {
+                    input.value = ''; // Deixa completamente zerado e limpo para digitação direta
+                    input.placeholder = '';
+                }
+            });
+        };
+
+        cleanAndZeroInputs();
+        setTimeout(cleanAndZeroInputs, 800);
+        setTimeout(cleanAndZeroInputs, 1500);
+
+        app.render();
+        console.log("✅ Faxina e Limpeza V69 aplicadas com sucesso!");
+    }, 400);
+});
+</script>
+<script id="alpha-patch-definitivo-v70">
+(function() {
+    const aplicarCorrecao = () => {
+        if (!window.app) return;
+
+        // 1. ZERA OS TEXTOS PADRÃO DIRETO NOS DADOS DO EVENTO (Evita que voltem ao trocar de aba)
+        const termosPadrao = [
+            'a definir', 'hotel a definir', 'endereço a definir', 
+            'seven fly', '(81) 99999-1111', 'novos começos x pib', 
+            'motorista', 'trecho:', 'horário:', 'voo', 'ex:'
+        ];
+
+        const deveZerar = (txt) => {
+            if (!txt || typeof txt !== 'string') return false;
+            const t = txt.trim().toLowerCase();
+            return termosPadrao.some(termo => t === termo || t.includes('a definir') || t.includes('seven fly') || t.includes('99999-1111') || t.startsWith('ex:'));
+        };
+
+        const limparObjetoDados = (obj) => {
+            if (!obj || typeof obj !== 'object') return;
+            Object.keys(obj).forEach(k => {
+                if (typeof obj[k] === 'string') {
+                    if (deveZerar(obj[k])) obj[k] = '';
+                } else if (typeof obj[k] === 'object') {
+                    limparObjetoDados(obj[k]);
+                }
+            });
+        };
+
+        // 2. FUNÇÃO QUE CONSERTA A TELA TODA VEZ QUE O SISTEMA RENDERIZAR
+        const corrigirDOM = () => {
+            // A) Remove o bloco espremido que foi injetado dentro da coluna do SELECT
+            document.querySelectorAll('#alpha-transfer-trechos-box').forEach(el => el.remove());
+
+            // B) Remove o bloco extra que ficou solto lá embaixo (depois da Equipe de Estrada)
+            document.querySelectorAll('div').forEach(div => {
+                const h4 = div.querySelector('h4');
+                if (h4 && h4.innerText.includes('LOGÍSTICA DE VAN')) {
+                    div.remove();
+                }
+                // Remove também sobras isoladas de "TRECHO DE VOLTA" no rodapé
+                if (!div.id && div.className.includes('bg-alpha-card') && div.innerText.includes('TRECHO DE VOLTA') && !div.querySelector('select')) {
+                    const pai = div.parentElement;
+                    if (pai && pai.className.includes('grid') && pai.parentElement && !pai.parentElement.querySelector('select')) {
+                        pai.parentElement.remove();
+                    }
+                }
+            });
+
+            // C) Zera todos os inputs e textareas na tela (sem texto preenchido e sem placeholder)
+            document.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]):not([type="date"]):not([type="time"]), textarea').forEach(inp => {
+                inp.placeholder = '';
+                if (deveZerar(inp.value)) {
+                    inp.value = '';
+                }
+            });
+
+            // D) Acopla o painel de IDA e VOLTA corretamente na parte inferior do card de cada veículo (Ocupando 100% da largura)
+            const show = app.getActiveShow ? app.getActiveShow() : null;
+            document.querySelectorAll('select').forEach((sel, idx) => {
+                const opcoes = sel.innerHTML || '';
+                if (opcoes.includes('Van') && opcoes.includes('Uber')) {
+                    // Encontra a linha (grid/flex) onde estão Tipo, Carretinha, Motorista, Placa, WhatsApp, Trecho
+                    const linhaGrid = sel.closest('.grid') || sel.parentElement.parentElement;
+                    if (!linhaGrid) return;
+
+                    // 1. Esconde o campo antigo "TRECHO" daquela linha
+                    Array.from(linhaGrid.children).forEach(col => {
+                        const lbl = col.querySelector('label, span');
+                        if (lbl && lbl.innerText.trim().toUpperCase() === 'TRECHO') {
+                            col.style.display = 'none';
+                        }
+                    });
+
+                    // 2. Cria o painel horizontal de Ida e Volta logo abaixo da linha do motorista (dentro do mesmo card)
+                    const cardVeiculo = linhaGrid.parentElement;
+                    if (cardVeiculo && !cardVeiculo.querySelector('.painel-ida-volta-v70')) {
+                        if (show && !show.rotasTerrestres) show.rotasTerrestres = {};
+                        const r = (show && show.rotasTerrestres && show.rotasTerrestres[idx]) 
+                            ? show.rotasTerrestres[idx] 
+                            : { idaOrigem: '', idaSaida: '', idaChegada: '', voltaOrigem: '', voltaSaida: '', voltaChegada: '' };
+
+                        const painel = document.createElement('div');
+                        painel.className = 'painel-ida-volta-v70 w-full mt-3 pt-3 border-t border-alpha-border grid grid-cols-1 md:grid-cols-2 gap-4';
+                        painel.style.gridColumn = '1 / -1';
+                        painel.innerHTML = `
+                            <div class="bg-alpha-dark p-3 rounded-xl border border-alpha-border">
+                                <span class="text-[11px] font-extrabold text-alpha-yellow uppercase block mb-2">➡️ Trecho de Ida</span>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block mb-1">Ponto de Partida</label>
+                                        <input type="text" value="${r.idaOrigem || ''}" oninput="window.salvarRotaV70(${idx}, 'idaOrigem', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-2.5 text-alpha-title text-xs font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block mb-1">Horário Saída</label>
+                                        <input type="time" value="${r.idaSaida || ''}" onchange="window.salvarRotaV70(${idx}, 'idaSaida', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-2 text-alpha-title text-xs">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block mb-1">Chegada Estimada</label>
+                                        <input type="time" value="${r.idaChegada || ''}" onchange="window.salvarRotaV70(${idx}, 'idaChegada', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-2 text-alpha-title text-xs">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-alpha-dark p-3 rounded-xl border border-alpha-border">
+                                <span class="text-[11px] font-extrabold text-alpha-yellow uppercase block mb-2">⬅️ Trecho de Volta</span>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block mb-1">Ponto de Partida</label>
+                                        <input type="text" value="${r.voltaOrigem || ''}" oninput="window.salvarRotaV70(${idx}, 'voltaOrigem', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-2.5 text-alpha-title text-xs font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block mb-1">Horário Saída</label>
+                                        <input type="time" value="${r.voltaSaida || ''}" onchange="window.salvarRotaV70(${idx}, 'voltaSaida', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-2 text-alpha-title text-xs">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-alpha-muted uppercase block mb-1">Chegada Estimada</label>
+                                        <input type="time" value="${r.voltaChegada || ''}" onchange="window.salvarRotaV70(${idx}, 'voltaChegada', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-2 text-alpha-title text-xs">
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        if (linhaGrid.classList.contains('grid')) {
+                            linhaGrid.appendChild(painel);
+                        } else {
+                            cardVeiculo.appendChild(painel);
+                        }
+                    }
+                }
+            });
+        };
+
+        window.salvarRotaV70 = function(idx, campo, valor) {
+            const s = app.getActiveShow ? app.getActiveShow() : null;
+            if (!s) return;
+            if (!s.rotasTerrestres) s.rotasTerrestres = {};
+            if (!s.rotasTerrestres[idx]) s.rotasTerrestres[idx] = {};
+            s.rotasTerrestres[idx][campo] = valor;
+            if (app.saveData) app.saveData();
+            else if (app.saveWithFeedback) app.saveWithFeedback();
+        };
+
+        // Limpa os dados atuais da memória
+        if (app.data) limparObjetoDados(app.data);
+
+        // Engata no app.render para que toda troca de aba já nasça limpa e diagramada
+        if (!app._renderHookedV70) {
+            const renderOriginal = app.render;
+            app.render = function() {
+                if (this.data) limparObjetoDados(this.data);
+                const res = renderOriginal.apply(this, arguments);
+                corrigirDOM();
+                setTimeout(corrigirDOM, 50);
+                return res;
+            };
+            app._renderHookedV70 = true;
+        }
+
+        app.render();
+    };
+
+    window.addEventListener('load', () => {
+        setTimeout(aplicarCorrecao, 650);
+    });
+})();
+</script>
+<script id="alpha-patch-limpeza-final-v71">
+(function() {
+    const apagarSobraTrechoVolta = () => {
+        document.querySelectorAll('span').forEach(span => {
+            // Procura exatamente o título "TRECHO DE VOLTA" que ficou solto fora do painel novo (v70)
+            if (span.innerText.trim().toUpperCase() === 'TRECHO DE VOLTA' && !span.closest('.painel-ida-volta-v70')) {
+                const caixa = span.closest('.bg-alpha-dark') || span.parentElement;
+                if (caixa) {
+                    const containerPai = caixa.parentElement;
+                    caixa.remove();
+                    // Se o contentor onde ela estava ficar vazio, remove-o também para não deixar espaço em branco
+                    if (containerPai && containerPai.children.length === 0) {
+                        const avo = containerPai.parentElement;
+                        containerPai.remove();
+                        if (avo && avo.children.length === 0) avo.remove();
+                    }
+                }
+            }
+        });
+    };
+
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            apagarSobraTrechoVolta();
+            if (window.app && !app._hookV71) {
+                const origRender = app.render;
+                app.render = function() {
+                    const res = origRender.apply(this, arguments);
+                    apagarSobraTrechoVolta();
+                    setTimeout(apagarSobraTrechoVolta, 60);
+                    return res;
+                };
+                app._hookV71 = true;
+                app.render();
+            }
+        }, 700);
+    });
+})();
+</script>
+<script id="alpha-patch-ocultar-artistas-eventos-v72">
+(function() {
+    const filtrarEventosDeArtistas = () => {
+        if (!window.app) return;
+
+        // 1. Intercepta a renderização das telas gerais para esconder eventos que possuem artistId
+        if (!app._hookV72) {
+            const origRender = app.render;
+            app.render = function() {
+                // Se estiver na aba geral de "Eventos" (single/events), filtra temporariamente app.data
+                // para exibir apenas produções próprias da Alpha (sem artistId)
+                const isGeneralEventsView = (this.currentView === 'events' || this.currentView === 'single' || this.activeView === 'events');
+                
+                let backupData = null;
+                if (isGeneralEventsView && Array.isArray(this.data)) {
+                    backupData = this.data;
+                    this.data = this.data.filter(item => !item.artistId);
+                }
+
+                const res = origRender.apply(this, arguments);
+
+                // Restaura a base completa imediatamente para não afetar a Gestão de Artistas nem salvamentos
+                if (backupData !== null) {
+                    this.data = backupData;
+                }
+
+                // 2. Varredura visual de segurança: se ainda estiver na tela "Eventos Únicos", 
+                // remove qualquer card que tenha nome de artista no subtítulo e corrige o contador
+                setTimeout(() => {
+                    const tituloTela = document.querySelector('h1, h2, h3');
+                    const isTelaEventosUnicos = Array.from(document.querySelectorAll('h1, h2, h3, span')).some(el => el.innerText.includes('Eventos Únicos'));
+                    
+                    if (isTelaEventosUnicos && Array.isArray(app.data)) {
+                        // Calcula quantos eventos realmente são da produtora (sem artistId)
+                        const qtdEventosProprios = app.data.filter(d => d.type === 'single' && !d.artistId).length;
+                        
+                        // Atualiza o contador "EVENTOS" no cabeçalho da tela
+                        document.querySelectorAll('div, span').forEach(el => {
+                            if (el.innerText.trim() === 'EVENTOS' && el.previousElementSibling) {
+                                el.previousElementSibling.innerText = String(qtdEventosProprios);
+                            }
+                        });
+
+                        // Remove cards de artistas caso tenham sido renderizados
+                        const nomesArtistas = (app.artists || []).map(a => a.name.toUpperCase());
+                        nomesArtistas.push('NC MUSIC', 'DJ MOTHÉ', 'DJ MOTHE', 'KENTO');
+
+                        document.querySelectorAll('.bg-alpha-card').forEach(card => {
+                            const textoTopo = (card.innerText || '').toUpperCase();
+                            if (nomesArtistas.some(nome => textoTopo.includes(nome + ' •'))) {
+                                card.remove();
+                            }
+                        });
+                    }
+                }, 30);
+
+                return res;
+            };
+            app._hookV72 = true;
+        }
+
+        app.render();
+    };
+
+    window.addEventListener('load', () => {
+        setTimeout(filtrarEventosDeArtistas, 750);
+    });
 })();
 </script>
 </body>
