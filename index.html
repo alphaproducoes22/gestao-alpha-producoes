@@ -391,6 +391,7 @@
                     <button id="side-collaborators" onclick="app.navigateSidebar('collaborators')" class="w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-3 shrink-0"><span>🔐</span> <span>Colaboradores</span></button>
                     <button id="side-suppliers" onclick="app.navigateSidebar('suppliers')" class="w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-3 shrink-0"><span>🏢</span> <span>Fornecedores</span></button>
                     <button id="side-sponsors" onclick="app.navigateSidebar('sponsors')" class="w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-3 shrink-0"><span>🤝</span> <span>Patrocinadores</span></button>
+                    <button id="side-leads" onclick="app.navigateSidebar('leads')" class="w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-3 shrink-0"><span>📇</span> <span>Banco de Leads</span></button>
                     
                 </nav>
             </div>
@@ -1298,6 +1299,7 @@
                 else if (section === 'suppliers') { this.view = 'suppliers'; }
                 else if (section === 'sponsors') { this.view = 'sponsors'; }
                 else if (section === 'crew') { this.view = 'crew'; }
+                else if (section === 'leads') { this.view = 'leads'; }
                 this.render();
             },
 
@@ -2438,10 +2440,6 @@
             <div class="bg-alpha-dark p-3.5 rounded-xl border border-alpha-border space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <span class="text-[10px] font-black uppercase status-pos">💵 Financeiro do Artista (Cachê, Comissão Escritório Alpha & Vencimentos)</span>
-                    <label class="flex items-center gap-1.5 cursor-pointer text-alpha-text font-semibold text-[11px]">
-                        <input type="checkbox" id="ae-save-lead" checked class="w-3.5 h-3.5 accent-alpha-yellow">
-                        <span>Salvar cliente na Base de Leads</span>
-                    </label>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     <div>
@@ -2543,11 +2541,7 @@
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold uppercase text-alpha-text mb-1">Artista de Interesse</label>
-                    <select id="ac-artist-ref" class="w-full bg-alpha-dark border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold">
-                        <option value="Ambos">🎧 Todos / Geral Alpha</option>
-                        <option value="DJ MOTHÉ">🎧 DJ MOTHÉ</option>
-                        <option value="NC MUSIC">🎸 NC MUSIC</option>
-                    </select>
+                    <select id="ac-artist-ref" class="w-full bg-alpha-dark border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold"><option value="">— Sem artista —</option></select>
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2722,6 +2716,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                             </button>
                         `;
                     }).join('')}
+                    <button type="button" onclick="app.openArtistFormModal()" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-alpha-muted hover:text-alpha-title border border-dashed border-alpha-border">➕ Novo artista</button>
                 </div>
             `;
         };
@@ -3363,7 +3358,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
 
             this.data.unshift(newEv);
 
-            if (document.getElementById('ae-save-lead')?.checked) {
+            if (false) {
                 const catMap = { 'Evento em Igreja':'Igreja', 'Acampamentos':'Acampamento', 'Prefeitura':'Prefeitura', 'Casamento':'Casamento / Noivos', 'XV Anos':'Debutante / XV Anos', 'Aniversário':'Aniversariante' };
                 const newLead = {
                     id: 'cli_' + Date.now(),
@@ -4172,7 +4167,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
             this.data.unshift(newEv);
 
             // SALVA APENAS A EMPRESA/INSTITUIÇÃO NA BASE DE LEADS (NUNCA O NOME DO EVENTO)
-            if (document.getElementById('ae-save-lead')?.checked) {
+            if (false) {
                 const leadOrgName = contact || venue || title;
                 if (!this.artistClients.some(c => c.org.toLowerCase() === leadOrgName.toLowerCase() && c.city.toLowerCase() === city.toLowerCase())) {
                     const catMap = { 'Evento em Igreja':'Igreja', 'Acampamentos':'Acampamento', 'Prefeitura':'Prefeitura', 'Casamento':'Casamento / Noivos', 'XV Anos':'Debutante / XV Anos', 'Aniversário':'Aniversariante' };
@@ -4294,9 +4289,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                                     <option value="SIM" ${ms.hasParisFloor === 'SIM' ? 'selected' : ''}>SIM</option>
                                 </select>
                                 <select onchange="app.updateDjMotheSpec('parisFloorSize', this.value)" class="h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 font-bold status-pos">
-                                    <option value="4x4m" ${ms.parisFloorSize === '4x4m' ? 'selected' : ''}>4x4m</option>
-                                    <option value="5x5m" ${ms.parisFloorSize === '5x5m' ? 'selected' : ''}>5x5m</option>
-                                    <option value="6x6m" ${ms.parisFloorSize === '6x6m' ? 'selected' : ''}>6x6m</option>
+                                    <option value="" ${!ms.parisFloorSize || ['3x3m','4x4m'].indexOf(ms.parisFloorSize) === -1 ? 'selected' : ''}>Selecione...</option><option value="3x3m" ${ms.parisFloorSize === '3x3m' ? 'selected' : ''}>3x3m</option><option value="4x4m" ${ms.parisFloorSize === '4x4m' ? 'selected' : ''}>4x4m</option>
                                 </select>
                             </div>
                         </div>
@@ -4684,7 +4677,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                             <div><strong class="text-alpha-title block text-sm">✨ Vai precisar de Pista Paris?</strong></div>
                             <div class="flex items-center gap-3">
                                 <select onchange="app.updateDjMotheSpec('hasParisFloor', this.value)" class="h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 font-bold text-alpha-title"><option value="NÃO" ${ms.hasParisFloor !== 'SIM' ? 'selected' : ''}>NÃO</option><option value="SIM" ${ms.hasParisFloor === 'SIM' ? 'selected' : ''}>SIM</option></select>
-                                <select onchange="app.updateDjMotheSpec('parisFloorSize', this.value)" class="h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 font-bold status-pos"><option value="4x4m" ${ms.parisFloorSize === '4x4m' ? 'selected' : ''}>4x4m</option><option value="5x5m" ${ms.parisFloorSize === '5x5m' ? 'selected' : ''}>5x5m</option><option value="6x6m" ${ms.parisFloorSize === '6x6m' ? 'selected' : ''}>6x6m</option></select>
+                                <select onchange="app.updateDjMotheSpec('parisFloorSize', this.value)" class="h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 font-bold status-pos"><option value="" ${!ms.parisFloorSize || ['3x3m','4x4m'].indexOf(ms.parisFloorSize) === -1 ? 'selected' : ''}>Selecione...</option><option value="3x3m" ${ms.parisFloorSize === '3x3m' ? 'selected' : ''}>3x3m</option><option value="4x4m" ${ms.parisFloorSize === '4x4m' ? 'selected' : ''}>4x4m</option></select>
                             </div>
                         </div>
 
@@ -4721,7 +4714,8 @@ window.addEventListener('load', () => {
         app.getArtistFinMetrics = function(show) {
             const parent = (this.data || []).find(d => (d.kind === 'single' && d.show?.id === show?.id) || (d.shows || []).some(x => x.id === show?.id));
             const isMothe = (parent?.artistId === 'art_dj_mothe' || this.activeArtistId === 'art_dj_mothe');
-            const defaultPct = isMothe ? 10 : 20;
+            const _artObj = (this.artistsRoster || []).find(a => a.id === parent?.artistId);
+            const defaultPct = isMothe ? 10 : ((_artObj && _artObj.defaultCommissionPct !== undefined && _artObj.defaultCommissionPct !== null && _artObj.defaultCommissionPct !== '') ? Number(_artObj.defaultCommissionPct) : 20);
 
             const af = show?.artistFinancials || {};
             const contracted = Number(af.contractedValue || 0);
@@ -4746,7 +4740,7 @@ window.addEventListener('load', () => {
                 const art = (this.artistsRoster || []).find(a => a.id === artistId) || this.getActiveArtistObj();
                 const pctInput = document.getElementById('ae-comm-pct');
                 if (pctInput && art) {
-                    pctInput.value = (art.id === 'art_dj_mothe') ? '10' : '20';
+                    pctInput.value = (art.id === 'art_dj_mothe') ? '10' : String((art.defaultCommissionPct !== undefined && art.defaultCommissionPct !== null && art.defaultCommissionPct !== '') ? art.defaultCommissionPct : 20);
                     this.autoCalcModalCommission();
                 }
             };
@@ -6046,6 +6040,23 @@ window.addEventListener('load', () => {
             return app.__origHosp.call(this, show);
         };
 
+        // Botões das abas do evento de artista: nunca repetir o mesmo botão (ex.: "Cerimonial & Repertório" x "Cerimonial & Músicas")
+        if (full && !app.__tabsDedupWrapped && app.renderShowView) {
+            app.__tabsDedupWrapped = true;
+            const origRSV = app.renderShowView;
+            app.renderShowView = function () {
+                let html = origRSV.apply(this, arguments);
+                if (typeof html !== 'string') return html;
+                const seen = {};
+                return html.replace(/<button[^>]*switchTab\('([A-Za-z_]+)'\)[^>]*>[\s\S]*?<\/button>/g, function (m, id) {
+                    if (seen[id]) return '';
+                    seen[id] = true;
+                    if (id === 'artist_ceremonial') return m.replace(/Cerimonial\s*&(?:amp;)?\s*Músicas/, 'Cerimonial & Repertório').replace('🎵', '💍');
+                    return m;
+                });
+            };
+        }
+
         if (full && !app.__pdfFoodWrapped && app.generatePdfReport) {
             app.__pdfFoodWrapped = true;
             const origPdf = app.generatePdfReport;
@@ -6067,6 +6078,263 @@ window.addEventListener('load', () => {
     function boot() { if (window.app) install(window.app, false); }
     boot();
     window.addEventListener('load', function () { setTimeout(function () { if (window.app) { install(window.app, true); } }, 900); });
+})();
+</script>
+
+<script id="alpha-v200">
+/* ===== Novo artista, Base de Leads por artista e Banco de Leads único ===== */
+(function () {
+    const REL = ['Igreja', 'Acampamento', 'Prefeitura'];
+    const CATS = [['Igreja', '⛪ Igreja / Ministério'], ['Acampamento', '⛺ Acampamento'], ['Prefeitura', '🏛️ Prefeitura'], ['Casamento / Noivos', '💍 Casamento / Noivos'], ['Debutante / XV Anos', '👑 Debutante / XV Anos'], ['Aniversariante', '🎂 Aniversariante'], ['Cerimonialista', '📋 Cerimonialista']];
+    const AUTO_RE = /^Evento em .+ • Cachê: .+Comissão Alpha:/;
+    const PROTECTED = ['art_dj_mothe', 'art_nc_music'];
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const slug = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 24) || 'artista';
+
+    function install(app, full) {
+        /* ---------- Leads: regras ---------- */
+        app.leadGroup = function (c) { return REL.indexOf(c.category) !== -1 ? 'Religioso' : 'Social'; };
+        app.isAutoLead = function (c) { return AUTO_RE.test((c && c.notes) || ''); };
+        app.leadOwner = function (c) {
+            if (c.artistId) return c.artistId;
+            const ref = String(c.artistRef || '').trim().toUpperCase();
+            const a = (this.artistsRoster || []).find(x => String(x.name || '').toUpperCase() === ref);
+            return a ? a.id : '';
+        };
+        app.leadArtistName = function (id) { const a = (this.artistsRoster || []).find(x => x.id === id); return a ? a.name : 'Sem artista'; };
+        if (!app.leadF) app.leadF = { bank: { group: '', artist: '', category: '', state: '', q: '' }, artist: { group: '', category: '', state: '', q: '' } };
+
+        app.alphaLeadsFiltered = function (mode, artId, ignoreGroup) {
+            const f = this.leadF[mode]; const q = String(f.q || '').toLowerCase().trim();
+            return (this.artistClients || []).filter(c => {
+                if (this.isAutoLead(c)) return false;
+                const own = this.leadOwner(c);
+                if (mode === 'artist' && own !== artId) return false;
+                if (mode === 'bank' && f.artist) { if (f.artist === '__none__') { if (own) return false; } else if (own !== f.artist) return false; }
+                if (!ignoreGroup && f.group && this.leadGroup(c) !== f.group) return false;
+                if (f.category && c.category !== f.category) return false;
+                if (f.state && String(c.state || '').toUpperCase().trim() !== f.state) return false;
+                if (q && [c.org, c.contact, c.city, c.notes, c.whatsapp].join(' ').toLowerCase().indexOf(q) === -1) return false;
+                return true;
+            });
+        };
+
+        function rowHtml(app, c, showArtist) {
+            const wa = app.getWhatsAppUrl ? app.getWhatsAppUrl(c.whatsapp) : '';
+            const grp = app.leadGroup(c);
+            return '<tr class="hover:bg-alpha-dark/50">' +
+                '<td class="p-3"><span class="' + (grp === 'Religioso' ? 'badge-info' : 'badge-warn') + ' px-2 py-0.5 rounded text-[10px] font-bold">' + (grp === 'Religioso' ? '⛪ Religioso' : '💍 Social') + '</span><div class="text-[10px] text-alpha-muted mt-1">' + esc(c.category) + '</div></td>' +
+                '<td class="p-3 font-extrabold text-alpha-title text-sm">' + esc(c.org) + '</td>' +
+                '<td class="p-3 font-bold text-alpha-title">' + esc(c.contact) + '</td>' +
+                '<td class="p-3">' + (wa ? '<a href="' + wa + '" target="_blank" class="btn-secondary-alpha status-pos px-2.5 py-1 rounded text-[11px]">💬 ' + esc(c.whatsapp) + '</a>' : esc(c.whatsapp || '-')) + '</td>' +
+                '<td class="p-3 text-alpha-title">📍 ' + esc(c.city || '-') + (c.state ? ' - ' + esc(c.state) : '') + '</td>' +
+                (showArtist ? '<td class="p-3 text-alpha-text font-semibold">' + esc(app.leadArtistName(app.leadOwner(c))) + '</td>' : '') +
+                '<td class="p-3 text-alpha-muted max-w-xs">' + esc(c.notes || '-') + '</td>' +
+                '<td class="p-3 text-center"><div class="flex items-center justify-center gap-1.5">' +
+                '<button onclick="app.openEditArtistClientModal(\'' + c.id + '\')" class="btn-secondary-alpha px-2 py-1 rounded text-[11px]">✏️</button>' +
+                '<button onclick="app.deleteArtistClient(\'' + c.id + '\')" class="text-alpha-muted hover:text-alpha-title font-bold text-base">&times;</button></div></td></tr>';
+        }
+        function tableHtml(app, mode, artId) {
+            const list = app.alphaLeadsFiltered(mode, artId);
+            const showArtist = mode === 'bank';
+            const cols = showArtist ? 8 : 7;
+            return '<div class="overflow-x-auto"><table class="w-full text-left text-xs border-collapse"><thead><tr class="border-b border-alpha-border text-[11px] uppercase text-alpha-muted bg-alpha-dark">' +
+                '<th class="p-3">Tipo</th><th class="p-3">Igreja / Prefeitura / Festa</th><th class="p-3">Responsável</th><th class="p-3">WhatsApp</th><th class="p-3">Cidade / UF</th>' + (showArtist ? '<th class="p-3">Artista</th>' : '') + '<th class="p-3">Observações</th><th class="p-3 text-center">Ações</th></tr></thead>' +
+                '<tbody class="divide-y divide-alpha-border">' + (list.length ? list.map(c => rowHtml(app, c, showArtist)).join('') : '<tr><td colspan="' + cols + '" class="p-6 text-center text-alpha-muted">Nenhum lead encontrado. Clique em "+ NOVO LEAD" para cadastrar.</td></tr>') + '</tbody></table></div>';
+        }
+
+        app.renderLeadsPanel = function (mode, art) {
+            const f = this.leadF[mode]; const artId = art ? art.id : '';
+            const base = this.alphaLeadsFiltered(mode, artId, true);
+            const nRel = base.filter(c => this.leadGroup(c) === 'Religioso').length, nSoc = base.filter(c => this.leadGroup(c) === 'Social').length;
+            const states = Array.from(new Set((this.artistClients || []).filter(c => !this.isAutoLead(c) && (mode !== 'artist' || this.leadOwner(c) === artId)).map(c => String(c.state || '').toUpperCase().trim()).filter(Boolean))).sort();
+            const seg = (val, label, n) => '<button onclick="app.leadSetF(\'' + mode + '\',\'group\',\'' + val + '\')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ' + (f.group === val ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha') + '">' + label + ' (' + n + ')</button>';
+            const artistOpts = (this.artistsRoster || []).map(a => '<option value="' + a.id + '" ' + (f.artist === a.id ? 'selected' : '') + '>' + esc(a.name) + '</option>').join('');
+            const noneCount = (this.artistClients || []).filter(c => !this.isAutoLead(c) && !this.leadOwner(c)).length;
+            return '<div class="flex flex-wrap items-center gap-2 mb-4">' + seg('', 'Todos', base.length) + seg('Religioso', '⛪ Religiosos', nRel) + seg('Social', '💍 Sociais', nSoc) + '</div>' +
+                '<div class="grid grid-cols-1 sm:grid-cols-' + (mode === 'bank' ? '5' : '4') + ' gap-3 mb-5 bg-alpha-dark p-4 rounded-xl border border-alpha-border text-xs">' +
+                (mode === 'bank' ? '<div><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Artista</label><select onchange="app.leadSetF(\'bank\',\'artist\',this.value)" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold"><option value="">Todos os artistas</option>' + artistOpts + (noneCount ? '<option value="__none__" ' + (f.artist === '__none__' ? 'selected' : '') + '>Sem artista (' + noneCount + ')</option>' : '') + '</select></div>' : '') +
+                '<div><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Categoria</label><select onchange="app.leadSetF(\'' + mode + '\',\'category\',this.value)" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold"><option value="">Todas as categorias</option>' + CATS.map(x => '<option value="' + x[0] + '" ' + (f.category === x[0] ? 'selected' : '') + '>' + x[1] + '</option>').join('') + '</select></div>' +
+                '<div><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Estado (UF)</label><select onchange="app.leadSetF(\'' + mode + '\',\'state\',this.value)" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold"><option value="">Todos os estados</option>' + states.map(u => '<option value="' + u + '" ' + (f.state === u ? 'selected' : '') + '>' + u + '</option>').join('') + '</select></div>' +
+                '<div><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Buscar nome / cidade / igreja</label><input type="text" value="' + esc(f.q) + '" oninput="app.leadSearch(\'' + mode + '\',this.value)" placeholder="Digite para localizar..." class="w-full bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title"></div>' +
+                '<div class="flex items-end"><button onclick="app.leadClearF(\'' + mode + '\')" class="w-full btn-secondary-alpha py-2 rounded-lg text-xs">Limpar filtros</button></div></div>' +
+                '<div id="leads-table-' + mode + '">' + tableHtml(this, mode, artId) + '</div>';
+        };
+        app.leadSetF = function (mode, key, val) { this.leadF[mode][key] = val; this.render(); };
+        app.leadClearF = function (mode) { const f = this.leadF[mode]; Object.keys(f).forEach(k => { f[k] = ''; }); this.render(); };
+        app.leadSearch = function (mode, val) {
+            this.leadF[mode].q = val;
+            const el = document.getElementById('leads-table-' + mode);
+            if (el) el.innerHTML = tableHtml(this, mode, mode === 'artist' ? (this.getActiveArtistObj() || {}).id : '');
+        };
+
+        app.renderArtistClientsSection = function (art) {
+            const n = this.alphaLeadsFiltered('artist', art.id, true).length;
+            return '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-6"><div class="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-alpha-border mb-5"><div>' +
+                '<span class="text-xs font-black uppercase text-alpha-gray block">BASE DE CLIENTES E LEADS — ' + esc(art.name) + '</span>' +
+                '<h3 class="text-2xl font-extrabold text-alpha-title">👥 Leads de ' + esc(art.name) + ' (' + n + ')</h3>' +
+                '<p class="text-xs text-alpha-muted mt-1">Aqui ficam só os leads cadastrados por você para este artista. Os eventos ficam no Histórico de Eventos.</p></div>' +
+                '<button onclick="app.openArtistClientModal()" class="btn-primary-alpha px-5 py-2.5 rounded-xl text-xs sm:text-sm">+ NOVO LEAD</button></div>' +
+                this.renderLeadsPanel('artist', art) + '</div>';
+        };
+
+        app.renderLeadsBankView = function () {
+            const all = (this.artistClients || []).filter(c => !this.isAutoLead(c)).length;
+            const autoN = (this.artistClients || []).filter(c => this.isAutoLead(c)).length;
+            return '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-6"><div class="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-alpha-border mb-5"><div>' +
+                '<span class="text-xs font-black uppercase text-alpha-gray block">ALPHA PRODUÇÕES • TODOS OS ARTISTAS</span>' +
+                '<h3 class="text-2xl font-extrabold text-alpha-title">📇 Banco de Leads (' + all + ')</h3>' +
+                '<p class="text-xs text-alpha-muted mt-1">Soma dos leads de todos os artistas. Use os filtros para separar Religioso e Social, por artista, estado ou busca.</p></div>' +
+                '<button onclick="app.openArtistClientModal(\'\')" class="btn-primary-alpha px-5 py-2.5 rounded-xl text-xs sm:text-sm">+ NOVO LEAD</button></div>' +
+                (autoN ? '<div class="mb-4 p-3 rounded-xl border border-alpha-border bg-alpha-dark text-xs flex flex-wrap items-center justify-between gap-3"><span class="text-alpha-muted">ℹ️ ' + autoN + ' registro(s) antigo(s) que o sistema criou sozinho a partir de eventos estão escondidos daqui.</span><button onclick="app.purgeAutoLeads()" class="btn-secondary-alpha px-3 py-1.5 rounded-lg text-xs">🧹 Excluir esses registros de vez</button></div>' : '') +
+                this.renderLeadsPanel('bank', null) + '</div>';
+        };
+        app.purgeAutoLeads = function () {
+            const list = (this.artistClients || []).filter(c => this.isAutoLead(c));
+            if (!list.length) return;
+            if (!confirm('Excluir de vez ' + list.length + ' registro(s) criado(s) automaticamente a partir de eventos? Os eventos em si NÃO serão apagados.')) return;
+            list.forEach(c => { if (window.firebaseDeleteDoc) window.firebaseDeleteDoc('alpha_artist_clients_v42', c.id).catch(() => {}); });
+            this.artistClients = (this.artistClients || []).filter(c => !this.isAutoLead(c));
+            this.saveWithFeedback(); this.render();
+        };
+
+        /* ---------- Modal de lead (por artista) ---------- */
+        function fillArtistSelect(app, selected) {
+            const sel = document.getElementById('ac-artist-ref'); if (!sel) return;
+            sel.innerHTML = '<option value="">— Sem artista —</option>' + (app.artistsRoster || []).map(a => '<option value="' + a.id + '">' + esc(a.name) + '</option>').join('');
+            sel.value = selected || '';
+        }
+        function openLeadModal() { const m = document.getElementById('artist-client-modal'); m.classList.remove('hidden'); m.classList.add('flex'); }
+        app.openArtistClientModal = function (prefArtistId) {
+            const pref = (typeof prefArtistId === 'string') ? prefArtistId : (this.view === 'artist_hub' ? ((this.getActiveArtistObj() || {}).id || '') : '');
+            document.getElementById('ac-modal-title').innerText = '👥 Cadastrar Novo Lead';
+            document.getElementById('ac-edit-id').value = '';
+            document.getElementById('ac-category').value = 'Igreja';
+            fillArtistSelect(this, pref);
+            ['ac-org', 'ac-contact', 'ac-whatsapp', 'ac-city', 'ac-state', 'ac-notes'].forEach(id => { document.getElementById(id).value = ''; });
+            openLeadModal();
+        };
+        app.openEditArtistClientModal = function (id) {
+            const c = (this.artistClients || []).find(x => x.id === id); if (!c) return;
+            document.getElementById('ac-modal-title').innerText = '✏️ Editar Lead';
+            document.getElementById('ac-edit-id').value = c.id;
+            document.getElementById('ac-category').value = c.category || 'Igreja';
+            fillArtistSelect(this, this.leadOwner(c));
+            document.getElementById('ac-org').value = c.org || ''; document.getElementById('ac-contact').value = c.contact || '';
+            document.getElementById('ac-whatsapp').value = c.whatsapp || ''; document.getElementById('ac-city').value = c.city || '';
+            document.getElementById('ac-state').value = c.state || ''; document.getElementById('ac-notes').value = c.notes || '';
+            openLeadModal();
+        };
+        app.handleSaveArtistClient = async function (e) {
+            e.preventDefault();
+            const g = (id) => document.getElementById(id);
+            const editId = g('ac-edit-id').value; const artistId = g('ac-artist-ref').value;
+            const payload = {
+                id: editId || ('cli_' + Date.now()), category: g('ac-category').value,
+                artistId: artistId, artistRef: artistId ? this.leadArtistName(artistId) : 'Ambos',
+                org: g('ac-org').value.trim(), contact: g('ac-contact').value.trim(), whatsapp: g('ac-whatsapp').value.trim(),
+                city: g('ac-city').value.trim(), state: g('ac-state').value.trim().toUpperCase(), notes: g('ac-notes').value.trim()
+            };
+            if (editId) { const i = this.artistClients.findIndex(x => x.id === editId); if (i !== -1) this.artistClients[i] = payload; else this.artistClients.unshift(payload); }
+            else this.artistClients.unshift(payload);
+            if (window.saveArtistClientToCloud) await window.saveArtistClientToCloud(payload);
+            this.closeArtistClientModal(); this.saveWithFeedback(); this.render();
+        };
+
+        /* ---------- Novo artista ---------- */
+        function ensureArtistModal() {
+            if (document.getElementById('artist-form-modal')) return;
+            const d = document.createElement('div');
+            d.id = 'artist-form-modal';
+            d.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4 no-print';
+            d.innerHTML = '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-6 w-full max-w-md">' +
+                '<div class="flex items-center justify-between pb-3 border-b border-alpha-border mb-4"><h3 id="af-title" class="text-lg font-extrabold text-alpha-title">➕ Novo artista</h3>' +
+                '<button type="button" onclick="app.closeArtistFormModal()" class="text-alpha-muted hover:text-alpha-title text-2xl">&times;</button></div>' +
+                '<form onsubmit="app.handleSaveArtistForm(event)" class="space-y-3.5 text-xs">' +
+                '<input type="hidden" id="af-id" value="">' +
+                '<div><label class="block text-[10px] font-bold uppercase text-alpha-text mb-1">Nome do artista / banda *</label><input type="text" id="af-name" required placeholder="Ex: DJ Fulano / Banda Exemplo" class="w-full bg-alpha-dark border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold"></div>' +
+                '<div><label class="block text-[10px] font-bold uppercase text-alpha-text mb-1">Estilo / descrição</label><input type="text" id="af-genre" placeholder="Ex: Cantor Gospel / Eventos e Festas" class="w-full bg-alpha-dark border border-alpha-border rounded-lg px-3 py-2 text-alpha-title"></div>' +
+                '<div><label class="block text-[10px] font-bold uppercase text-alpha-text mb-1">Comissão padrão da Alpha (%)</label><input type="number" id="af-pct" step="0.1" min="0" max="100" placeholder="Ex: 20" class="w-full bg-alpha-dark border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold"><p class="text-[10px] text-alpha-muted mt-1">Já vem preenchida em cada evento novo desse artista. Se deixar vazio, usa 20%.</p></div>' +
+                '<div class="flex justify-end gap-2 pt-3 border-t border-alpha-border"><button type="button" onclick="app.closeArtistFormModal()" class="btn-secondary-alpha px-4 py-2 rounded-lg text-xs">Cancelar</button><button type="submit" id="af-submit" class="btn-primary-alpha px-6 py-2 rounded-lg text-xs">Criar artista</button></div>' +
+                '</form></div>';
+            document.body.appendChild(d);
+        }
+        app.openArtistFormModal = function (id) {
+            ensureArtistModal();
+            const a = id ? (this.artistsRoster || []).find(x => x.id === id) : null;
+            document.getElementById('af-title').innerText = a ? '✏️ Editar artista' : '➕ Novo artista';
+            document.getElementById('af-submit').innerText = a ? 'Salvar alterações' : 'Criar artista';
+            document.getElementById('af-id').value = a ? a.id : '';
+            document.getElementById('af-name').value = a ? (a.name || '') : '';
+            document.getElementById('af-genre').value = a ? (a.genre || '') : '';
+            document.getElementById('af-pct').value = (a && a.defaultCommissionPct !== undefined && a.defaultCommissionPct !== null) ? a.defaultCommissionPct : '';
+            const m = document.getElementById('artist-form-modal'); m.classList.remove('hidden'); m.classList.add('flex');
+            setTimeout(() => { const n = document.getElementById('af-name'); if (n) n.focus(); }, 50);
+        };
+        app.closeArtistFormModal = function () { const m = document.getElementById('artist-form-modal'); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); } };
+        app.handleSaveArtistForm = async function (e) {
+            e.preventDefault();
+            const id = document.getElementById('af-id').value;
+            const name = document.getElementById('af-name').value.trim().toUpperCase();
+            const genre = document.getElementById('af-genre').value.trim();
+            const pctRaw = document.getElementById('af-pct').value;
+            if (!name) return;
+            if ((this.artistsRoster || []).some(a => a.id !== id && String(a.name || '').toUpperCase() === name)) { alert('Já existe um artista com esse nome.'); return; }
+            const pct = pctRaw === '' ? undefined : Number(pctRaw);
+            if (id) {
+                const a = this.artistsRoster.find(x => x.id === id); if (!a) return;
+                a.name = name; a.genre = genre; if (pct === undefined) delete a.defaultCommissionPct; else a.defaultCommissionPct = pct;
+                (this.data || []).filter(d => d.artistId === id).forEach(d => { d.artist = name; });
+                this.activeArtistId = id;
+            } else {
+                const nid = 'art_' + slug(name) + '_' + Date.now().toString(36);
+                const a = { id: nid, name: name, genre: genre, crewRoster: [] }; if (pct !== undefined) a.defaultCommissionPct = pct;
+                this.artistsRoster.push(a); this.activeArtistId = nid;
+            }
+            this.closeArtistFormModal();
+            this.saveLocalOnly(); this.save();
+            if (window.saveArtistRosterToCloud) await window.saveArtistRosterToCloud();
+            this.openArtistHub(this.activeArtistId, 'events');
+        };
+        app.deleteArtistFromRoster = function (id) {
+            if (PROTECTED.indexOf(id) !== -1) return;
+            const evs = (this.data || []).filter(d => d.artistId === id).length;
+            if (evs > 0) { alert('Este artista ainda tem ' + evs + ' evento(s). Só dá para excluir um artista sem eventos.'); return; }
+            const a = (this.artistsRoster || []).find(x => x.id === id); if (!a) return;
+            if (!confirm('Excluir o artista ' + a.name + '? (Os leads dele continuam no Banco de Leads, como "Sem artista".)')) return;
+            this.artistsRoster = this.artistsRoster.filter(x => x.id !== id);
+            if (window.firebaseDeleteDoc) window.firebaseDeleteDoc('alpha_artists_roster_v42', id).catch(() => {});
+            this.saveLocalOnly(); this.save();
+            this.activeArtistId = (this.artistsRoster[0] || {}).id; this.navigateSidebar('home');
+        };
+
+        if (full && !app.__leadsWrapped) {
+            app.__leadsWrapped = true;
+            // barra "Editar / Excluir artista" no topo do painel de cada artista
+            const origHub = app.renderArtistHubView;
+            app.renderArtistHubView = function () {
+                const html = origHub.apply(this, arguments); const art = this.getActiveArtistObj(); if (!art) return html;
+                const canDel = PROTECTED.indexOf(art.id) === -1 && (this.data || []).filter(d => d.artistId === art.id).length === 0;
+                return '<div class="flex justify-end gap-2 mb-3"><button onclick="app.openArtistFormModal(\'' + art.id + '\')" class="btn-secondary-alpha px-3 py-1.5 rounded-lg text-xs">✏️ Editar artista</button>' +
+                    (canDel ? '<button onclick="app.deleteArtistFromRoster(\'' + art.id + '\')" class="btn-secondary-alpha px-3 py-1.5 rounded-lg text-xs status-neg">🗑️ Excluir artista</button>' : '') + '</div>' + html;
+            };
+            // tela do Banco de Leads
+            const origRender = app.render;
+            app.render = function () {
+                origRender.apply(this, arguments);
+                const btn = document.getElementById('side-leads');
+                if (btn) btn.className = 'w-full text-left px-3.5 py-3 rounded-xl text-xs sm:text-sm flex items-center gap-3 shrink-0 ' + (this.sidebarActive === 'leads' ? 'font-extrabold btn-primary-alpha shadow-md' : 'font-bold');
+                if (this.view === 'leads') {
+                    const c = document.getElementById('main-content'); if (c) c.innerHTML = this.renderLeadsBankView();
+                    const nav = document.getElementById('breadcrumbs');
+                    if (nav) nav.innerHTML = '<button onclick="app.navigateSidebar(\'home\')" class="hover:text-alpha-title text-alpha-text font-bold">📊 Painel Geral</button><span>/</span><span class="text-alpha-title font-bold">Banco de Leads</span>';
+                }
+            };
+        }
+    }
+    function boot() { if (window.app) install(window.app, false); }
+    boot();
+    window.addEventListener('load', function () { setTimeout(function () { if (window.app) { install(window.app, true); try { window.app.render(); } catch (e) {} } }, 1000); });
 })();
 </script>
 </body>
