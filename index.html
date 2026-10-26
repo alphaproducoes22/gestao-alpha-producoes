@@ -1550,13 +1550,14 @@
             renderShowReportsTab(show) {
                 const linkedSups = this.getShowSuppliersList(show);
                 const fin = this.calcShowFinancialSummary(show);
+                const isArtistEvent = !!(this.getActiveParent() && this.getActiveParent().artistId);
                 return `
                     <div class="mb-6">
                         <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded badge-info">CENTRAL DE DOCUMENTOS E EXPORTAÇÃO PDF</span>
                         <h3 class="text-xl font-extrabold text-alpha-title mt-1">📄 Emissão de Relatórios Oficiais — ${show.city} (${this.formatDate(show.date)})</h3>
                         <p class="text-xs text-alpha-muted">Escolha abaixo entre o <strong>Roadmap da Equipe/Banda</strong> (enxuto) ou o <strong>Roadmap do Produtor</strong> (completo com estrutura e fornecedores).</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 ${isArtistEvent ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4">
                         <div class="bg-alpha-dark border border-alpha-border rounded-2xl p-5 flex flex-col justify-between">
                             <div><div class="flex justify-between mb-3"><span class="text-2xl">🎤</span><span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded badge-info">Banda & Equipe</span></div><h4 class="text-base font-extrabold text-alpha-title mb-2">Roadmap da Equipe (Banda & Artista)</h4><p class="text-xs text-alpha-muted mb-3">Documento limpo para a banda/equipe (sem fornecedores nem checklist):</p><ul class="text-xs text-alpha-text space-y-1 mb-5"><li>✅ Local e Endereço do Evento</li><li>✅ Cronograma (Day Sheet)</li><li>✅ Hotéis (${(show.hotelsList || []).length})</li><li>✅ Voos Ida/Volta (${(show.flights || []).length})</li><li>✅ Vans / Transfers (${(show.groundTransfers || []).length})</li></ul></div>
                             <button onclick="app.generatePdfReport('roadmap_crew')" class="w-full btn-primary-alpha py-3 rounded-xl text-xs uppercase cursor-pointer">📥 Roadmap da Equipe (PDF)</button>
@@ -1569,10 +1570,10 @@
                             <div><div class="flex justify-between mb-3"><span class="text-2xl">🎟️</span><span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded badge-pos">Comercial</span></div><h4 class="text-base font-extrabold text-alpha-title mb-2">Relatório de Vendas & Receitas</h4><p class="text-xs text-alpha-muted mb-3">Fechamento de ingressos e patrocínios de <strong>${show.city}</strong>:</p><ul class="text-xs text-alpha-text space-y-1 mb-5"><li>✅ Lotes Vendidos (Qtd e Valor)</li><li>✅ Patrocinadores Vinculados</li><li>✅ Receita Total: <strong class="status-pos">${this.formatCurrency(fin.totalReceitas)}</strong></li><li>✅ Já Recebido: <strong class="status-info">${this.formatCurrency(fin.totalRecebido)}</strong></li></ul></div>
                             <button onclick="app.generatePdfReport('sales')" class="w-full btn-secondary-alpha py-3 rounded-xl text-xs uppercase cursor-pointer">📥 Relatório de Vendas (PDF)</button>
                         </div>
-                        <div class="bg-alpha-dark border border-alpha-border rounded-2xl p-5 flex flex-col justify-between">
+                        ${isArtistEvent ? '' : `                        <div class="bg-alpha-dark border border-alpha-border rounded-2xl p-5 flex flex-col justify-between">
                             <div><div class="flex justify-between mb-3"><span class="text-2xl">💰</span><span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded badge-info">Diretoria</span></div><h4 class="text-base font-extrabold text-alpha-title mb-2">Fechamento Financeiro Geral</h4><p class="text-xs text-alpha-muted mb-3">Balanço completo confrontando despesas e receitas:</p><ul class="text-xs text-alpha-text space-y-1 mb-5"><li>✅ Custo Bruto: <strong class="status-neg">${this.formatCurrency(fin.totalCustos)}</strong></li><li>✅ Receitas: <strong class="status-pos">${this.formatCurrency(fin.totalReceitas)}</strong></li><li>✅ Custo Restante: <strong class="status-warn">${this.formatCurrency(fin.custoLiquido)}</strong></li><li>✅ Resultado: <strong class="${fin.balancoFinal >= 0 ? 'status-pos' : 'status-neg'}">${this.formatCurrency(fin.balancoFinal)}</strong></li></ul></div>
                             <button onclick="app.generatePdfReport('financial')" class="w-full btn-secondary-alpha py-3 rounded-xl text-xs uppercase cursor-pointer">📥 Balanço Financeiro (PDF)</button>
-                        </div>
+                        </div>`}
                     </div>`;
             },
 
@@ -1595,7 +1596,7 @@
                         <div class="sec"><h2>2. CRONOGRAMA DO EVENTO (DAY SHEET)</h2><table><thead><tr><th style="width:90px">Horário</th><th>Atividade / Programação</th><th style="width:160px">Local / Área</th><th style="width:160px">Responsável</th></tr></thead><tbody>${(show.daysheet || []).map(d => `<tr><td><strong>${d.time}</strong></td><td><strong>${d.activity}</strong></td><td>${d.area}</td><td>${d.owner}</td></tr>`).join('')}</tbody></table></div>
                         <div class="sec"><h2>3. HOSPEDAGEM OFICIAL</h2><table><thead><tr><th>Nome do Hotel</th><th>Endereço Completo</th><th style="width:160px">Telefone / Recepção</th></tr></thead><tbody>${(show.hotelsList || []).map(h => `<tr><td><strong>${h.name || 'A definir'}</strong></td><td>${h.address || '-'}</td><td><strong>${h.phone || '-'}</strong></td></tr>`).join('')}</tbody></table></div>
                         <div class="sec"><h2>4. LOGÍSTICA AÉREA (VOOS DE IDA E VOLTA)</h2><table><thead><tr><th>Passageiro</th><th>Trecho de IDA (Voo / Data / Horário)</th><th style="width:95px">Loc. IDA</th><th>Trecho de VOLTA (Voo / Data / Horário)</th><th style="width:95px">Loc. VOLTA</th></tr></thead><tbody>${(show.flights || []).map(f => `<tr><td><strong>${f.passenger || '-'}</strong></td><td><strong>${f.route || '-'}</strong> • Voo ${f.flightNo || '-'}<br>${this.formatDate(f.date)} (${f.time || '-'})</td><td><strong>${f.loc || '-'}</strong></td><td><strong>${f.returnRoute || '-'}</strong> • Voo ${f.returnFlightNo || '-'}<br>${this.formatDate(f.returnDate)} (${f.returnTime || '-'})</td><td><strong>${f.returnLoc || '-'}</strong></td></tr>`).join('')}</tbody></table></div>
-                        <div class="sec"><h2>5. LOGÍSTICA TERRESTRE (VANS & TRANSFERS)</h2><table><thead><tr><th style="width:90px">Veículo</th><th style="width:100px">Carretinha?</th><th>Motorista</th><th>Empresa / Modelo / Placa</th><th style="width:130px">WhatsApp</th><th>Roteiro / Percurso</th></tr></thead><tbody>${(show.groundTransfers || []).map(gt => `<tr><td><strong>${gt.type || 'Van'}</strong></td><td><strong>${gt.hasTrailer || 'NÃO'}</strong></td><td><strong>${gt.driverName || '-'}</strong></td><td>${gt.companyName || '-'}</td><td><strong>${gt.phone || '-'}</strong></td><td>${gt.routeText || '-'}</td></tr>`).join('')}</tbody></table></div>
+                        <div class="sec"><h2>5. LOGÍSTICA TERRESTRE (VANS & TRANSFERS)</h2><table><thead><tr><th style="width:90px">Veículo</th><th style="width:100px">Carretinha?</th><th>Motorista</th><th>Empresa / Modelo / Placa</th><th style="width:130px">WhatsApp</th><th>Roteiro / Percurso</th></tr></thead><tbody>${(show.groundTransfers || []).map(gt => `<tr><td><strong>${gt.type || 'Van'}</strong></td><td><strong>${gt.hasTrailer || 'NÃO'}</strong></td><td><strong>${gt.driverName || '-'}</strong></td><td>${gt.companyName || '-'}</td><td><strong>${gt.phone || '-'}</strong></td><td>${gt.routeText || '-'}${(gt.outFrom || gt.outDepart || gt.outArrive) ? `<br><small>Ida: ${gt.outFrom || '-'} • saída ${gt.outDepart || '--:--'} → chegada ${gt.outArrive || '--:--'}</small>` : ''}${(gt.backFrom || gt.backDepart || gt.backArrive) ? `<br><small>Volta: ${gt.backFrom || '-'} • saída ${gt.backDepart || '--:--'} → chegada ${gt.backArrive || '--:--'}</small>` : ''}</td></tr>`).join('')}</tbody></table></div>
                     `;
                 } else if (reportType === 'roadmap_producer' || reportType === 'roadmap') {
                     htmlBody = `
@@ -1604,7 +1605,7 @@
                         <div class="sec"><h2>3. FORNECEDORES DO EVENTO & HORÁRIO DE CHEGADA (${linkedSups.length})</h2><table><thead><tr><th style="width:90px">Chegada</th><th>Empresa</th><th>Contato / WhatsApp</th><th>Serviço Prestado</th><th>Observações</th></tr></thead><tbody>${linkedSups.map(sup => { const sc = (show.supplierSchedule && show.supplierSchedule[sup.id]) || { arrivalTime: '08:00', notes: '-' }; return `<tr><td><strong>${sc.arrivalTime || 'A definir'}</strong></td><td><strong>${sup.company}</strong><br><small>CNPJ: ${sup.cnpj || '-'}</small></td><td>${sup.contact || '-'}<br><strong>${sup.whatsapp || ''}</strong></td><td>${sup.service || '-'}</td><td>${sc.notes || '-'}</td></tr>`; }).join('')}</tbody></table></div>
                         <div class="sec"><h2>4. HOSPEDAGEM / HOTÉIS (${(show.hotelsList || []).length})</h2><table><thead><tr><th>Hotel</th><th>Endereço</th><th>Telefone</th><th>Vouchers</th></tr></thead><tbody>${(show.hotelsList || []).map(h => `<tr><td><strong>${h.name || 'A definir'}</strong></td><td>${h.address || '-'}</td><td>${h.phone || '-'}</td><td>${(h.vouchers || []).length} anexo(s)</td></tr>`).join('')}</tbody></table></div>
                         <div class="sec"><h2>5. MALHA AÉREA (IDA & VOLTA)</h2><table><thead><tr><th>Passageiro</th><th>Trecho IDA / Voo / Data / Hora</th><th>Loc. IDA</th><th>Trecho VOLTA / Voo / Data / Hora</th><th>Loc. VOLTA</th></tr></thead><tbody>${(show.flights || []).map(f => `<tr><td><strong>${f.passenger || '-'}</strong></td><td><strong>${f.route || '-'}</strong> • ${f.flightNo || '-'}<br>${this.formatDate(f.date)} (${f.time || '-'})</td><td><strong>${f.loc || '-'}</strong></td><td><strong>${f.returnRoute || '-'}</strong> • ${f.returnFlightNo || '-'}<br>${this.formatDate(f.returnDate)} (${f.returnTime || '-'})</td><td><strong>${f.returnLoc || '-'}</strong></td></tr>`).join('')}</tbody></table></div>
-                        <div class="sec"><h2>6. TRANSFERS TERRESTRES (VANS & VEÍCULOS)</h2><table><thead><tr><th>Tipo</th><th>Carretinha?</th><th>Motorista</th><th>Empresa/Placa</th><th>WhatsApp</th><th>Trecho</th></tr></thead><tbody>${(show.groundTransfers || []).map(gt => `<tr><td><strong>${gt.type || 'Van'}</strong></td><td><strong>${gt.hasTrailer || 'NÃO'}</strong></td><td>${gt.driverName || '-'}</td><td>${gt.companyName || '-'}</td><td>${gt.phone || '-'}</td><td>${gt.routeText || '-'}</td></tr>`).join('')}</tbody></table></div>
+                        <div class="sec"><h2>6. TRANSFERS TERRESTRES (VANS & VEÍCULOS)</h2><table><thead><tr><th>Tipo</th><th>Carretinha?</th><th>Motorista</th><th>Empresa/Placa</th><th>WhatsApp</th><th>Trecho</th></tr></thead><tbody>${(show.groundTransfers || []).map(gt => `<tr><td><strong>${gt.type || 'Van'}</strong></td><td><strong>${gt.hasTrailer || 'NÃO'}</strong></td><td>${gt.driverName || '-'}</td><td>${gt.companyName || '-'}</td><td>${gt.phone || '-'}</td><td>${gt.routeText || '-'}${(gt.outFrom || gt.outDepart || gt.outArrive) ? `<br><small>Ida: ${gt.outFrom || '-'} • saída ${gt.outDepart || '--:--'} → chegada ${gt.outArrive || '--:--'}</small>` : ''}${(gt.backFrom || gt.backDepart || gt.backArrive) ? `<br><small>Volta: ${gt.backFrom || '-'} • saída ${gt.backDepart || '--:--'} → chegada ${gt.backArrive || '--:--'}</small>` : ''}</td></tr>`).join('')}</tbody></table></div>
                         <div class="sec"><h2>7. EQUIPE DE ESTRADA ESCALADA (${assignedCrew.length})</h2><table><thead><tr><th>Nome Completo</th><th>Função</th><th>CPF</th><th>Nascimento</th><th>WhatsApp</th></tr></thead><tbody>${assignedCrew.map(m => `<tr><td><strong>${m.name}</strong></td><td>${m.role}</td><td>${m.cpf || '-'}</td><td>${this.formatDate(m.birth)}</td><td>${m.whatsapp || '-'}</td></tr>`).join('')}</tbody></table></div>
                         <div class="sec"><h2>8. CHECKLIST DE CAMARINS, SALAS & CATERING</h2>${(show.hospitalityRooms || []).map(rm => { const tot = (rm.items || []).length; const dn = (rm.items || []).filter(i => i.ready).length; return `<div style="margin-bottom:10px;"><div style="background:#f3f4f6;padding:6px 10px;font-weight:800;border:1px solid #d1d5db;border-bottom:none;display:flex;justify-content:space-between;"><span>🛋️ ${rm.name}</span><span>${dn}/${tot} resolvidos</span></div><table><thead><tr><th style="width:65px">Status</th><th style="width:150px">Categoria</th><th>Descrição</th><th style="width:180px">Observações</th></tr></thead><tbody>${(rm.items || []).map(it => `<tr><td><strong>${it.ready ? '✅ OK' : '⬜ Pend.'}</strong></td><td>${it.type}</td><td>${it.item}</td><td>${it.notes || '-'}</td></tr>`).join('')}</tbody></table></div>`; }).join('')}</div>
                     `;
@@ -1710,8 +1711,9 @@
                             <button onclick="app.addGroundTransferRow()" class="btn-secondary-alpha px-3.5 py-2 rounded-xl text-xs">+ Cadastrar Van / Veículo</button>
                         </div>
                         <div class="space-y-3">
-                            ${(show.groundTransfers || []).map((gt, gIdx) => `<div class="bg-alpha-card border border-alpha-border rounded-xl p-3 flex flex-col lg:flex-row items-stretch lg:items-end gap-2 text-xs">
-                                <div class="grid grid-cols-1 sm:grid-cols-6 gap-2 flex-1 items-end">
+                            ${(show.groundTransfers || []).map((gt, gIdx) => `<div class="bg-alpha-card border border-alpha-border rounded-xl p-3 flex flex-col gap-3 text-xs">
+                                <div class="flex flex-col lg:flex-row items-stretch lg:items-end gap-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-2 flex-1 items-end">
                                     <div><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Tipo</label><select onchange="app.updateGroundTransfer(${gIdx}, 'type', this.value)" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2 text-alpha-title font-bold"><option value="Van" ${gt.type !== 'Uber' ? 'selected' : ''}>🚐 Van</option><option value="Uber" ${gt.type === 'Uber' ? 'selected' : ''}>🚗 Uber / Carro</option></select></div>
                                     <div><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Carretinha?</label><select onchange="app.updateGroundTransfer(${gIdx}, 'hasTrailer', this.value)" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-2 font-extrabold ${gt.hasTrailer === 'SIM' ? 'status-warn' : 'text-alpha-text'}"><option value="NÃO" ${gt.hasTrailer !== 'SIM' ? 'selected' : ''}>NÃO</option><option value="SIM" ${gt.hasTrailer === 'SIM' ? 'selected' : ''}>SIM (Com Carretinha)</option></select></div>
                                     <div><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Motorista</label><input type="text" value="${gt.driverName || ''}" onchange="app.updateGroundTransfer(${gIdx}, 'driverName', this.value)" placeholder="Motorista" class="w-full h-9 px-2.5 rounded-lg text-alpha-title font-bold bg-alpha-dark border border-alpha-border"></div>
@@ -1720,6 +1722,8 @@
                                     <div><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Trecho</label><input type="text" value="${gt.routeText || ''}" onchange="app.updateGroundTransfer(${gIdx}, 'routeText', this.value)" placeholder="Aeroporto x Hotel" class="w-full h-9 px-2.5 rounded-lg text-alpha-text bg-alpha-dark border border-alpha-border"></div>
                                 </div>
                                 <button onclick="app.removeGroundTransferRow(${gIdx})" class="btn-secondary-alpha status-neg h-9 px-3 rounded-lg text-xs shrink-0">🗑️ Deletar</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full"><div class="bg-alpha-dark border border-alpha-border rounded-lg p-3 min-w-0"><span class="font-extrabold status-info uppercase text-[10px] block mb-2">🛫 Trecho de Ida</span><div class="grid grid-cols-1 sm:grid-cols-3 gap-2"><div class="sm:col-span-1 min-w-0"><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Saída (Origem)</label><input type="text" value="${gt.outFrom || ''}" onchange="app.updateGroundTransfer(${gIdx}, 'outFrom', this.value)" placeholder="Ex: Aeroporto - RJ" class="w-full h-9 px-2.5 rounded-lg text-alpha-title bg-alpha-card border border-alpha-border"></div><div class="min-w-0"><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Horário de Saída</label><input type="time" value="${gt.outDepart || ''}" onchange="app.updateGroundTransfer(${gIdx}, 'outDepart', this.value)" class="w-full h-9 px-2.5 rounded-lg text-alpha-title bg-alpha-card border border-alpha-border"></div><div class="min-w-0"><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Chegada Estimada</label><input type="time" value="${gt.outArrive || ''}" onchange="app.updateGroundTransfer(${gIdx}, 'outArrive', this.value)" class="w-full h-9 px-2.5 rounded-lg text-alpha-title bg-alpha-card border border-alpha-border"></div></div></div><div class="bg-alpha-dark border border-alpha-border rounded-lg p-3 min-w-0"><span class="font-extrabold status-warn uppercase text-[10px] block mb-2">🛬 Trecho de Volta</span><div class="grid grid-cols-1 sm:grid-cols-3 gap-2"><div class="sm:col-span-1 min-w-0"><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Saída (Local do Evento)</label><input type="text" value="${gt.backFrom || ''}" onchange="app.updateGroundTransfer(${gIdx}, 'backFrom', this.value)" placeholder="Ex: Aeroporto - RJ" class="w-full h-9 px-2.5 rounded-lg text-alpha-title bg-alpha-card border border-alpha-border"></div><div class="min-w-0"><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Horário de Saída</label><input type="time" value="${gt.backDepart || ''}" onchange="app.updateGroundTransfer(${gIdx}, 'backDepart', this.value)" class="w-full h-9 px-2.5 rounded-lg text-alpha-title bg-alpha-card border border-alpha-border"></div><div class="min-w-0"><label class="text-[10px] uppercase text-alpha-muted font-bold block mb-1">Chegada Estimada</label><input type="time" value="${gt.backArrive || ''}" onchange="app.updateGroundTransfer(${gIdx}, 'backArrive', this.value)" class="w-full h-9 px-2.5 rounded-lg text-alpha-title bg-alpha-card border border-alpha-border"></div></div></div></div>
                             </div>`).join('')}
                         </div>
                     </div>
@@ -5518,7 +5522,7 @@ window.addEventListener('load', () => {
 
                 // Se houver menção genérica de van, anexa os campos separados de ida e volta
                 if (!html.includes('Trecho de Ida')) {
-                    html += vanSectionReplacement;
+                    // (removido: os trechos agora fazem parte de cada van)
                 }
                 return html;
             };
@@ -5613,7 +5617,7 @@ window.addEventListener('load', () => {
                 // Insere os campos de trecho logo após os inputs de transfer terrestre se já existirem na tela
                 if (html.includes('Van') || html.includes('Uber') || html.includes('Transfer')) {
                     // Injeta de forma inteligente logo após o campo de tipo de transporte
-                    html = html.replace(/(<select[^>]*>[\s\S]*?Van[\s\S]*?<\/select>)/gi, `$1 ${transferTrechosHtml}`);
+                    // (removido: injeção antiga do bloco de trechos dentro da coluna da van)
                 }
 
                 return html;
@@ -5636,7 +5640,7 @@ window.addEventListener('load', () => {
             const allDivs = document.querySelectorAll('div');
             allDivs.forEach(div => {
                 const text = div.innerText || '';
-                if (text.includes('LOGÍSTICA DE VAN') || (text.includes('Trecho de Ida') && div.id !== 'alpha-transfer-trechos-box' && !div.closest('#alpha-transfer-trechos-box'))) {
+                if (false) {
                     // Se for o bloco duplicado antigo, remove do DOM
                     if (!div.querySelector('select') && div.innerHTML.includes('Trecho de Ida')) {
                         div.remove();
@@ -5674,7 +5678,7 @@ window.addEventListener('load', () => {
             allElements.forEach(el => {
                 const text = el.innerText || '';
                 // Se for um bloco isolado de "TRECHO DE VOLTA" ou similar perdido abaixo da equipe, deleta
-                if ((text.includes('TRECHO DE VOLTA') || text.includes('CONFIGURAÇÃO DE TRECHOS')) && el.closest('.space-y-6') && !el.querySelector('select')) {
+                if (false) {
                     const parentCard = el.closest('.bg-alpha-card') || el;
                     parentCard.remove();
                 }
@@ -5688,7 +5692,7 @@ window.addEventListener('load', () => {
                     'A definir', 'a definir', 'Hotel a definir', 'Endereço a definir', 
                     'Trecho:', 'Data:', 'Horário:', 'Voo', 'Ex:', 'ex:'
                 ];
-                if (defaultValuesToZero.some(term => val.toLowerCase().includes(term.toLowerCase())) || val.length > 25) {
+                if (defaultValuesToZero.some(term => val.toLowerCase().includes(term.toLowerCase())) ) {
                     input.value = ''; // Deixa completamente zerado e limpo para digitação direta
                     input.placeholder = '';
                 }
