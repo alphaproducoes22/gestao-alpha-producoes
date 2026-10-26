@@ -5,9 +5,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0F1115">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Alpha">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Gestão Alpha Produções</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -17,57 +20,28 @@
 <script>
         (function() {
             try {
+                // Sem cache antigo: sempre abre a versão mais nova do sistema
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
                 }
                 if ('caches' in window) {
                     caches.keys().then(names => names.forEach(n => caches.delete(n)));
                 }
-                const canvas = document.createElement('canvas');
-                canvas.width = 512; canvas.height = 512;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#0F1115';
-                ctx.beginPath(); ctx.roundRect(0, 0, 512, 512, 96); ctx.fill();
-
-                const drawChevronGroup = (cx, color) => {
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 18;
-                    ctx.lineCap = 'square';
-                    ctx.lineJoin = 'miter';
-                    [[0, 115], [38, 82], [76, 48]].forEach(([dy, spread]) => {
-                        const topY = 135 + dy, botY = 270;
-                        ctx.beginPath();
-                        ctx.moveTo(cx - spread, botY);
-                        ctx.lineTo(cx, topY);
-                        ctx.lineTo(cx + spread, botY);
-                        ctx.stroke();
-                    });
-                };
-                drawChevronGroup(150, '#8A8F98');
-                drawChevronGroup(362, '#8A8F98');
-                drawChevronGroup(256, '#F5B301');
-
-                ctx.font = '900 40px Montserrat, Arial, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillStyle = '#F5B301';
-                ctx.fillText('ALPHA', 128, 345);
-                ctx.fillStyle = '#8A8F98';
-                ctx.fillText('PRODUÇÕES', 336, 345);
-
-                const pngUrl = canvas.toDataURL('image/png');
-                let fav = document.createElement('link'); fav.rel = 'icon'; fav.type = 'image/png'; fav.href = pngUrl; document.head.appendChild(fav);
-                let appIc = document.createElement('link'); appIc.rel = 'apple-touch-icon'; appIc.href = pngUrl; document.head.appendChild(appIc);
-
-                const manifest = {
-                    name: "Gestão Alpha Produções",
-                    short_name: "Alpha Produções",
-                    start_url: window.location.origin + window.location.pathname + "?pwa=v55",
-                    display: "standalone",
-                    background_color: "#0F1115",
-                    theme_color: "#0F1115",
-                    icons: [{ src: pngUrl, sizes: "512x512", type: "image/png", purpose: "any" }]
-                };
-                let mLink = document.createElement('link'); mLink.rel = 'manifest'; mLink.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: 'application/json'})); document.head.appendChild(mLink);
+                // Ícone do app = logomarca oficial da Alpha
+                const iconUrl = "data:image/png;base64,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";
+                let fav = document.createElement('link'); fav.rel = 'icon'; fav.type = 'image/png'; fav.href = iconUrl; document.head.appendChild(fav);
+                let appIc = document.createElement('link'); appIc.rel = 'apple-touch-icon'; appIc.href = 'apple-touch-icon.png'; document.head.appendChild(appIc);
+                let appIc2 = document.createElement('link'); appIc2.rel = 'apple-touch-icon'; appIc2.href = iconUrl; document.head.appendChild(appIc2);
+                // Manifesto do app: usa o arquivo manifest.json (se estiver hospedado junto) ou um interno
+                const addManifest = (href) => { let m = document.createElement('link'); m.rel = 'manifest'; m.href = href; document.head.appendChild(m); };
+                fetch('manifest.json', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('sem manifest'); addManifest('manifest.json'); }).catch(() => {
+                    const manifest = {
+                        name: "Gestão Alpha Produções", short_name: "Alpha", start_url: window.location.origin + window.location.pathname,
+                        display: "standalone", background_color: "#0F1115", theme_color: "#0F1115",
+                        icons: [{ src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" }]
+                    };
+                    addManifest(URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' })));
+                });
             } catch (e) {}
         })();
     </script>
@@ -111,6 +85,16 @@
                 try { await setDoc(doc(db, "alpha_sponsors_v42", String(sp.id)), sp); } catch (e) {}
             };
 
+            // Assinatura canônica (ordem das chaves não importa) para saber o que realmente mudou
+            const canon = (o) => JSON.stringify(o, (k, v) => (v && typeof v === 'object' && !Array.isArray(v)) ? Object.keys(v).sort().reduce((r, kk) => { r[kk] = v[kk]; return r; }, {}) : v);
+            const syncedSig = (window.__alphaSyncedSig = window.__alphaSyncedSig || new Map());
+            window.__alphaCanon = canon;
+            window.__alphaPutIfChanged = (colName, obj, payload) => {
+                if (!db || !obj || obj.id === undefined) return Promise.resolve();
+                const key = colName + '/' + obj.id; const body = payload || obj; const sig = canon(body);
+                if (syncedSig.get(key) === sig) return Promise.resolve();
+                return setDoc(doc(db, colName, String(obj.id)), body).then(() => { syncedSig.set(key, sig); }).catch(() => {});
+            };
             window.syncAlphaToCloud = async (data, suppliers, collaborators, globalCrew, sponsors) => {
                 if (!db || !window.cloudLoadedSafe) return;
                 window.lastLocalSaveTime = Date.now();
@@ -118,11 +102,11 @@
                 if (el) el.innerHTML = '🔄 Salvando...';
                 try {
                     await Promise.all([
-                        ...(collaborators || []).map(c => setDoc(doc(db, "alpha_office_collaborators_v42", String(c.id)), c).catch(() => {})),
-                        ...(suppliers || []).map(s => setDoc(doc(db, "alpha_suppliers_v42", String(s.id)), s).catch(() => {})),
-                        ...(globalCrew || []).map(cr => setDoc(doc(db, "alpha_road_crew_v42", String(cr.id)), cr).catch(() => {})),
-                        ...(sponsors || []).map(sp => setDoc(doc(db, "alpha_sponsors_v42", String(sp.id)), sp).catch(() => {})),
-                        ...(data || []).map(it => setDoc(doc(db, "alpha_productions_v42", String(it.id)), sanitizeForFirestore(it)).catch(() => {}))
+                        ...(collaborators || []).map(c => window.__alphaPutIfChanged("alpha_office_collaborators_v42", c)),
+                        ...(suppliers || []).map(s => window.__alphaPutIfChanged("alpha_suppliers_v42", s)),
+                        ...(globalCrew || []).map(cr => window.__alphaPutIfChanged("alpha_road_crew_v42", cr)),
+                        ...(sponsors || []).map(sp => window.__alphaPutIfChanged("alpha_sponsors_v42", sp)),
+                        ...(data || []).map(it => window.__alphaPutIfChanged("alpha_productions_v42", it, sanitizeForFirestore(it)))
                     ]);
                     if (el) el.innerHTML = '☁️ Sincronizado';
                 } catch (e) {}
@@ -144,6 +128,10 @@
                     cS.forEach(x => c.push(x.data()));
                     crS.forEach(x => cr.push(x.data()));
                     spS.forEach(x => sp.push(x.data()));
+                    try {
+                        const mark = (col, arr) => arr.forEach(o => { if (o && o.id !== undefined) window.__alphaSyncedSig.set(col + '/' + o.id, window.__alphaCanon(o)); });
+                        mark("alpha_productions_v42", d); mark("alpha_suppliers_v42", s); mark("alpha_office_collaborators_v42", c); mark("alpha_road_crew_v42", cr); mark("alpha_sponsors_v42", sp);
+                    } catch (e) {}
                     return { data: d, suppliers: s, collaborators: c, globalCrew: cr, sponsors: sp };
                 } catch (e) { return null; }
             };
@@ -183,43 +171,69 @@
 
             window.pullFreshCloudData(true);
 
+            // ---- Atualização em tempo real (PC e celular) ----
+            // Antes: se você estivesse digitando ou tivesse salvo há pouco, a atualização era DESCARTADA.
+            // Agora: ela fica esperando e é aplicada assim que der (sem perder nada).
+            window.__alphaLastInput = 0;
+            ['input', 'keydown', 'change'].forEach(ev => document.addEventListener(ev, () => { window.__alphaLastInput = Date.now(); }, true));
             const canAutoRender = () => {
                 if (!window.cloudLoadedSafe || !window.app) return false;
                 if (Date.now() - (window.lastLocalSaveTime || 0) < 2500) return false;
                 const tag = document.activeElement?.tagName;
-                return !(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
+                const typing = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') && (Date.now() - (window.__alphaLastInput || 0) < 12000);
+                return !typing;
             };
+            const markSigs = (col, arr) => { try { arr.forEach(o => { if (o && o.id !== undefined) window.__alphaSyncedSig.set(col + '/' + o.id, window.__alphaCanon(o)); }); } catch (e) {} };
+            const pendingApply = {}; let pendingTimer = null;
+            window.__alphaWhenIdle = (key, fn) => {
+                pendingApply[key] = fn;
+                if (canAutoRender()) { flushPending(); return; }
+                if (!pendingTimer) pendingTimer = setInterval(() => { if (canAutoRender()) flushPending(); }, 1000);
+            };
+            function flushPending() {
+                if (pendingTimer) { clearInterval(pendingTimer); pendingTimer = null; }
+                const keys = Object.keys(pendingApply);
+                keys.forEach(k => { const fn = pendingApply[k]; delete pendingApply[k]; try { fn(); } catch (e) {} });
+                if (keys.length && window.app) { try { window.app.render(); } catch (e) {} }
+            }
 
             onSnapshot(collection(db, "alpha_productions_v42"), (snap) => {
-                if (!canAutoRender()) return;
                 const d = []; snap.forEach(x => d.push(x.data()));
-                if (d.length > 0) { window.app.data = d; window.app.normalizeData(); window.app.saveLocalOnly(); window.app.render(); }
+                if (d.length === 0) return;
+                markSigs("alpha_productions_v42", d);
+                window.__alphaWhenIdle('productions', () => { window.app.data = d; window.app.normalizeData(); window.app.saveLocalOnly(); });
             });
             onSnapshot(collection(db, "alpha_office_collaborators_v42"), (snap) => {
-                if (!canAutoRender()) return;
                 const c = []; snap.forEach(x => c.push(x.data()));
-                if (c.length > 0) { window.app.collaborators = c; window.app.syncLoggedUserWithCollaborators(); window.app.saveLocalOnly(); window.app.render(); }
+                if (c.length === 0) return;
+                markSigs("alpha_office_collaborators_v42", c);
+                window.__alphaWhenIdle('collaborators', () => { window.app.collaborators = c; window.app.syncLoggedUserWithCollaborators(); window.app.saveLocalOnly(); });
             });
             onSnapshot(collection(db, "alpha_suppliers_v42"), (snap) => {
-                if (!canAutoRender()) return;
                 const s = []; snap.forEach(x => s.push(x.data()));
-                if (s.length > 0) { window.app.suppliers = s; window.app.saveLocalOnly(); window.app.render(); }
+                if (s.length === 0) return;
+                markSigs("alpha_suppliers_v42", s);
+                window.__alphaWhenIdle('suppliers', () => { window.app.suppliers = s; window.app.saveLocalOnly(); });
             });
             onSnapshot(collection(db, "alpha_road_crew_v42"), (snap) => {
-                if (!canAutoRender()) return;
                 const cr = []; snap.forEach(x => cr.push(x.data()));
-                if (cr.length > 0) { window.app.globalCrew = cr; window.app.saveLocalOnly(); window.app.render(); }
+                if (cr.length === 0) return;
+                markSigs("alpha_road_crew_v42", cr);
+                window.__alphaWhenIdle('crew', () => { window.app.globalCrew = cr; window.app.saveLocalOnly(); });
             });
             onSnapshot(collection(db, "alpha_sponsors_v42"), (snap) => {
-                if (!canAutoRender()) return;
                 const sp = []; snap.forEach(x => sp.push(x.data()));
-                if (sp.length > 0) { window.app.sponsors = sp; window.app.saveLocalOnly(); window.app.render(); }
+                if (sp.length === 0) return;
+                markSigs("alpha_sponsors_v42", sp);
+                window.__alphaWhenIdle('sponsors', () => { window.app.sponsors = sp; window.app.saveLocalOnly(); });
             });
 
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible' && window.pullFreshCloudData) window.pullFreshCloudData(true);
             });
             window.addEventListener('focus', () => { if (window.pullFreshCloudData) window.pullFreshCloudData(true); });
+            window.addEventListener('online', () => { if (window.pullFreshCloudData) window.pullFreshCloudData(true); });
+            window.addEventListener('pageshow', (e) => { if (e.persisted && window.pullFreshCloudData) window.pullFreshCloudData(true); });
         } catch (e) {}
     </script>
     <script>
@@ -253,6 +267,8 @@
         .text-gray-400, .text-gray-500 { color: var(--texto-discreto) !important; }
         .btn-primary-alpha { background-color: var(--amarelo) !important; color: #0F1115 !important; font-weight: 800; border: 1px solid var(--amarelo); transition: opacity 0.15s ease; }
         .btn-primary-alpha:hover { opacity: 0.9; }
+        /* Eventos particulares/sociais (Casamento, XV Anos, Aniversário, Outros) = card em cinza mais claro */
+        .alpha-card-social { background-color: #343A46 !important; border-color: #5A6272 !important; }
         .btn-secondary-alpha { background-color: var(--card-hover) !important; border: 1px solid var(--borda) !important; color: var(--texto) !important; font-weight: 600; transition: all 0.15s ease; }
         .btn-secondary-alpha:hover { color: var(--titulo) !important; border-color: var(--cinza-marca) !important; }
         .badge-pos { color: var(--positivo) !important; background-color: var(--card-hover); border: 1px solid var(--borda); }
@@ -700,6 +716,32 @@
                 hospitalityRooms: createHospitalityRoomsTemplate(),
                 budget: createFinancialGroupsTemplate()
             };
+        }
+
+        // Cadastro NOVO: todos os campos de texto nascem vazios (a sugestão aparece só como marca d'água / placeholder)
+        function createBlankShow(opts) {
+            opts = opts || {};
+            const s = createFullShowTemplate(opts);
+            const cityTxt = (opts.city || '').trim(), uf = (opts.state || '').trim();
+            s.cityName = cityTxt; s.stateUf = uf;
+            s.city = cityTxt ? ((cityTxt.includes('-') || !uf) ? cityTxt : `${cityTxt} - ${uf}`) : '';
+            s.venue = opts.venue || ''; s.address = opts.address || ''; s.date = opts.date || ''; s.capacity = opts.capacity || '';
+            s.specs = { produtorLocal: opts.produtorLocal || '', telefoneLocal: opts.telefoneLocal || '', stageManager: '', alvaraStatus: '', energiaPalco: '', horarioAbertura: '', horarioShow: '', observacoes: '' };
+            s.riderBlocks = { audio: '', light: '', ledSize: '', ledGabaritoName: '', ledGabaritoData: '' };
+            s.hotelInfo = { name: opts.hotelName || '', address: opts.hotelAddress || '', phone: opts.hotelPhone || '', voucherName: '', voucherData: '' };
+            s.hotelsList = [{ id: 'ht_1', name: opts.hotelName || '', address: opts.hotelAddress || '', phone: opts.hotelPhone || '', vouchers: [] }];
+            s.flights = [{ passenger: '', route: '', flightNo: '', date: '', time: '', loc: '', returnRoute: '', returnFlightNo: '', returnDate: '', returnTime: '', returnLoc: '', ticketName: '', ticketData: '' }];
+            s.groundTransfers = [{ type: 'Van', hasTrailer: 'NÃO', driverName: '', vanPlate: '', companyName: '', phone: '', routeText: '' }];
+            s.assignedCrewIds = [];
+            s.daysheet = [{ time: '', activity: '', area: '', owner: '', status: 'Pendente' }];
+            s.hospitalityRooms = [
+                { id: 'room_1', name: '', items: [{ type: 'Móveis / Estrutura', item: '', notes: '', ready: false }] },
+                { id: 'room_2', name: '', items: [{ type: 'Alimentação / Bebidas', item: '', notes: '', ready: false }] }
+            ];
+            const blankExp = (it) => Object.assign({}, it, { desc: '', detalhes: '', qtd: 1, qtdUnid: 1, unitario: 0, pago: 0, empresa: '', modPagto: 'avista', dataSinal: '', valorSinal: 0, sinalPago: false, dataPagamento: '', saldoPago: false });
+            s.budget.despesas = s.budget.despesas.map(g => ({ grupo: g.grupo, itens: [blankExp(g.itens[0])] }));
+            s.budget.receitas.grupos = s.budget.receitas.grupos.map(g => ({ grupo: g.grupo, itens: [Object.assign({}, g.itens[0], { desc: '', lote: '', qtd: 0, unitario: 0, recebido: 0, origem: '' })] }));
+            return s;
         }
 
         function getFreshDatabase() {
@@ -1384,7 +1426,7 @@
             renderSingleEventCard(item) {
                 const s = item.show; const mapsLink = this.getMapsUrl(s); const gcalLink = this.getGoogleCalendarShowUrl(item.id, s.id); const cCount = (s.assignedCrewIds || []).length;
                 const sFin = this.calcShowFinancialSummary(s);
-                return `<div class="bg-alpha-card border border-alpha-border rounded-2xl p-5 flex flex-col justify-between shadow-lg"><div><div class="flex flex-wrap items-center justify-between gap-2 mb-2"><span class="text-xs font-bold uppercase text-alpha-muted truncate">${item.category}</span><div class="flex items-center gap-2">${this.getDaysRemainingBadge(s.date)}<span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${s.status === 'Confirmado' ? 'badge-pos' : 'badge-warn'}">${s.status}</span></div></div><div class="flex items-center justify-between gap-2 mb-2"><h3 onclick="app.openShow('${item.id}', '${s.id}')" class="text-xl font-extrabold text-alpha-title hover:opacity-80 cursor-pointer truncate">${item.title}</h3><button onclick="app.editProductionTitlePrompt('${item.id}')" class="btn-secondary-alpha px-2.5 py-1 rounded-lg text-xs shrink-0">✏️ Editar Nome</button></div><div class="grid grid-cols-2 gap-2.5 my-3 bg-alpha-dark p-3 rounded-xl border border-alpha-border text-xs"><div><span class="text-[10px] uppercase text-alpha-muted font-bold block">Receita Total</span><strong class="status-pos text-sm font-extrabold">${this.formatCurrency(sFin.totalReceitas)}</strong></div><div><span class="text-[10px] uppercase text-alpha-muted font-bold block">Custo Total</span><strong class="status-neg text-sm font-extrabold">${this.formatCurrency(sFin.totalCustos)}</strong></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-3 bg-alpha-dark p-4 rounded-xl border border-alpha-border text-sm"><div class="min-w-0"><span class="text-xs text-alpha-muted block">Cidade / Local</span><strong class="text-alpha-title block truncate">${s.city} • ${s.venue}</strong><div class="flex items-center gap-3 mt-2"><a href="${mapsLink}" target="_blank" class="status-info hover:underline text-xs font-semibold">🗺️ Maps</a><a href="${gcalLink}" target="_blank" class="status-info hover:underline text-xs font-semibold">📅 + Agenda Alpha</a></div></div><div><span class="text-xs text-alpha-muted block">Data do Evento</span><strong class="text-alpha-title block text-base">${this.formatDate(s.date)}</strong><span class="text-xs status-info font-bold block mt-1">🎤 Equipe: ${cCount} pessoas</span></div></div></div><div class="pt-3 border-t border-alpha-border flex items-center justify-between"><button onclick="app.deleteItem('${item.id}')" class="text-xs text-alpha-muted hover:text-alpha-title">Eliminar</button><button onclick="app.openShow('${item.id}', '${s.id}')" class="btn-primary-alpha px-5 py-2 rounded-xl text-xs sm:text-sm">ACESSAR EVENTO &rarr;</button></div></div>`;
+                return `<div class="bg-alpha-card ${this.socialCardClass ? this.socialCardClass(item) : ''} border border-alpha-border rounded-2xl p-5 flex flex-col justify-between shadow-lg"><div><div class="flex flex-wrap items-center justify-between gap-2 mb-2"><span class="text-xs font-bold uppercase text-alpha-muted truncate">${item.category}</span><div class="flex items-center gap-2">${this.getDaysRemainingBadge(s.date)}<span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${s.status === 'Confirmado' ? 'badge-pos' : 'badge-warn'}">${s.status}</span></div></div><div class="flex items-center justify-between gap-2 mb-2"><h3 onclick="app.openShow('${item.id}', '${s.id}')" class="text-xl font-extrabold text-alpha-title hover:opacity-80 cursor-pointer truncate">${item.title}</h3><button onclick="app.editProductionTitlePrompt('${item.id}')" class="btn-secondary-alpha px-2.5 py-1 rounded-lg text-xs shrink-0">✏️ Editar Nome</button></div><div class="grid grid-cols-2 gap-2.5 my-3 bg-alpha-dark p-3 rounded-xl border border-alpha-border text-xs"><div><span class="text-[10px] uppercase text-alpha-muted font-bold block">Receita Total</span><strong class="status-pos text-sm font-extrabold">${this.formatCurrency(sFin.totalReceitas)}</strong></div><div><span class="text-[10px] uppercase text-alpha-muted font-bold block">Custo Total</span><strong class="status-neg text-sm font-extrabold">${this.formatCurrency(sFin.totalCustos)}</strong></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-3 bg-alpha-dark p-4 rounded-xl border border-alpha-border text-sm"><div class="min-w-0"><span class="text-xs text-alpha-muted block">Cidade / Local</span><strong class="text-alpha-title block truncate">${s.city} • ${s.venue}</strong><div class="flex items-center gap-3 mt-2"><a href="${mapsLink}" target="_blank" class="status-info hover:underline text-xs font-semibold">🗺️ Maps</a><a href="${gcalLink}" target="_blank" class="status-info hover:underline text-xs font-semibold">📅 + Agenda Alpha</a></div></div><div><span class="text-xs text-alpha-muted block">Data do Evento</span><strong class="text-alpha-title block text-base">${this.formatDate(s.date)}</strong><span class="text-xs status-info font-bold block mt-1">🎤 Equipe: ${cCount} pessoas</span></div></div></div><div class="pt-3 border-t border-alpha-border flex items-center justify-between"><button onclick="app.deleteItem('${item.id}')" class="text-xs text-alpha-muted hover:text-alpha-title">Eliminar</button><button onclick="app.openShow('${item.id}', '${s.id}')" class="btn-primary-alpha px-5 py-2 rounded-xl text-xs sm:text-sm">ACESSAR EVENTO &rarr;</button></div></div>`;
             },
 
             renderTourView() {
@@ -1397,7 +1439,7 @@
                 const parent = this.getActiveParent(); const show = this.getActiveShow(); if (!parent || !show) return '';
                 const mapsLink = this.getMapsUrl(show); const gcalLink = this.getGoogleCalendarShowUrl(parent.id, show.id);
                 const supCount = this.getShowSuppliersList(show).length;
-                const tabs = [{ id: 'daysheet', label: '⏱️ Day Sheet' }, { id: 'specs', label: '📋 Ficha Técnica' }, { id: 'rider', label: '🔊 Rider & LED' }, { id: 'logistics', label: '✈️ Logística & Equipe' }, { id: 'show_suppliers', label: `🏢 Fornecedores (${supCount})` }, { id: 'hospitality', label: '🍽️ Camarins & Catering' }, { id: 'financials', label: '💰 Financeiro (Custos & Receitas)' }, { id: 'reports', label: '📄 Relatórios & PDF' }];
+                const tabs = [{ id: 'daysheet', label: '⏱️ Day Sheet' }, { id: 'specs', label: '📋 Ficha Técnica' }, { id: 'rider', label: '🔊 Rider & LED' }, { id: 'logistics', label: '✈️ Logística & Equipe' }, { id: 'show_suppliers', label: `🏢 Fornecedores (${supCount})` }, { id: 'hospitality', label: (parent && parent.artistId) ? '🍽️ Alimentação' : '🍽️ Camarins & Catering' }, { id: 'financials', label: '💰 Financeiro (Custos & Receitas)' }, { id: 'reports', label: '📄 Relatórios & PDF' }];
                 return `
                     <div class="bg-alpha-card border border-alpha-border rounded-2xl p-6 mb-6 print-card">
                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -1607,7 +1649,7 @@
                         <div class="sec"><h2>5. MALHA AÉREA (IDA & VOLTA)</h2><table><thead><tr><th>Passageiro</th><th>Trecho IDA / Voo / Data / Hora</th><th>Loc. IDA</th><th>Trecho VOLTA / Voo / Data / Hora</th><th>Loc. VOLTA</th></tr></thead><tbody>${(show.flights || []).map(f => `<tr><td><strong>${f.passenger || '-'}</strong></td><td><strong>${f.route || '-'}</strong> • ${f.flightNo || '-'}<br>${this.formatDate(f.date)} (${f.time || '-'})</td><td><strong>${f.loc || '-'}</strong></td><td><strong>${f.returnRoute || '-'}</strong> • ${f.returnFlightNo || '-'}<br>${this.formatDate(f.returnDate)} (${f.returnTime || '-'})</td><td><strong>${f.returnLoc || '-'}</strong></td></tr>`).join('')}</tbody></table></div>
                         <div class="sec"><h2>6. TRANSFERS TERRESTRES (VANS & VEÍCULOS)</h2><table><thead><tr><th>Tipo</th><th>Carretinha?</th><th>Motorista</th><th>Empresa/Placa</th><th>WhatsApp</th><th>Trecho</th></tr></thead><tbody>${(show.groundTransfers || []).map(gt => `<tr><td><strong>${gt.type || 'Van'}</strong></td><td><strong>${gt.hasTrailer || 'NÃO'}</strong></td><td>${gt.driverName || '-'}</td><td>${gt.companyName || '-'}</td><td>${gt.phone || '-'}</td><td>${gt.routeText || '-'}${(gt.outFrom || gt.outDepart || gt.outArrive) ? `<br><small>Ida: ${gt.outFrom || '-'} • saída ${gt.outDepart || '--:--'} → chegada ${gt.outArrive || '--:--'}</small>` : ''}${(gt.backFrom || gt.backDepart || gt.backArrive) ? `<br><small>Volta: ${gt.backFrom || '-'} • saída ${gt.backDepart || '--:--'} → chegada ${gt.backArrive || '--:--'}</small>` : ''}</td></tr>`).join('')}</tbody></table></div>
                         <div class="sec"><h2>7. EQUIPE DE ESTRADA ESCALADA (${assignedCrew.length})</h2><table><thead><tr><th>Nome Completo</th><th>Função</th><th>CPF</th><th>Nascimento</th><th>WhatsApp</th></tr></thead><tbody>${assignedCrew.map(m => `<tr><td><strong>${m.name}</strong></td><td>${m.role}</td><td>${m.cpf || '-'}</td><td>${this.formatDate(m.birth)}</td><td>${m.whatsapp || '-'}</td></tr>`).join('')}</tbody></table></div>
-                        <div class="sec"><h2>8. CHECKLIST DE CAMARINS, SALAS & CATERING</h2>${(show.hospitalityRooms || []).map(rm => { const tot = (rm.items || []).length; const dn = (rm.items || []).filter(i => i.ready).length; return `<div style="margin-bottom:10px;"><div style="background:#f3f4f6;padding:6px 10px;font-weight:800;border:1px solid #d1d5db;border-bottom:none;display:flex;justify-content:space-between;"><span>🛋️ ${rm.name}</span><span>${dn}/${tot} resolvidos</span></div><table><thead><tr><th style="width:65px">Status</th><th style="width:150px">Categoria</th><th>Descrição</th><th style="width:180px">Observações</th></tr></thead><tbody>${(rm.items || []).map(it => `<tr><td><strong>${it.ready ? '✅ OK' : '⬜ Pend.'}</strong></td><td>${it.type}</td><td>${it.item}</td><td>${it.notes || '-'}</td></tr>`).join('')}</tbody></table></div>`; }).join('')}</div>
+                        <div class="sec"><h2>8. ${(this.getActiveParent() && this.getActiveParent().artistId) ? 'ALIMENTAÇÃO' : 'CHECKLIST DE CAMARINS, SALAS & CATERING'}</h2>${(show.hospitalityRooms || []).map(rm => { const tot = (rm.items || []).length; const dn = (rm.items || []).filter(i => i.ready).length; return `<div style="margin-bottom:10px;"><div style="background:#f3f4f6;padding:6px 10px;font-weight:800;border:1px solid #d1d5db;border-bottom:none;display:flex;justify-content:space-between;"><span>🛋️ ${rm.name}</span><span>${dn}/${tot} resolvidos</span></div><table><thead><tr><th style="width:65px">Status</th><th style="width:150px">Categoria</th><th>Descrição</th><th style="width:180px">Observações</th></tr></thead><tbody>${(rm.items || []).map(it => `<tr><td><strong>${it.ready ? '✅ OK' : '⬜ Pend.'}</strong></td><td>${it.type}</td><td>${it.item}</td><td>${it.notes || '-'}</td></tr>`).join('')}</tbody></table></div>`; }).join('')}</div>
                     `;
                 } else if (reportType === 'sales') {
                     const rec = show.budget?.receitas || { grupos: [] };
@@ -2222,14 +2264,14 @@
             handleCreateSubmit(e) {
                 e.preventDefault(); const mode = document.getElementById('form-mode').value; const parentTourId = document.getElementById('form-parent-tour-id').value;
                 const title = document.getElementById('input-title').value.trim(); const artist = document.getElementById('input-artist').value.trim();
-                const ns = createFullShowTemplate({ city: document.getElementById('input-municipio').value, state: document.getElementById('input-uf').value, venue: document.getElementById('input-venue').value.trim(), address: document.getElementById('input-address').value.trim(), mapsUrl: document.getElementById('input-maps').value.trim(), date: document.getElementById('input-date').value, capacity: document.getElementById('input-capacity').value.trim() || '5.000 pessoas', status: document.getElementById('input-status').value, artist });
+                const ns = createBlankShow({ city: document.getElementById('input-municipio').value, state: document.getElementById('input-uf').value, venue: document.getElementById('input-venue').value.trim(), address: document.getElementById('input-address').value.trim(), mapsUrl: document.getElementById('input-maps').value.trim(), date: document.getElementById('input-date').value, capacity: document.getElementById('input-capacity').value.trim() || '', status: document.getElementById('input-status').value, artist });
                 if (mode === 'add_city' && parentTourId) { const tour = this.data.find(t => t.id === parentTourId); if (tour) { tour.shows.push(ns); this.saveWithFeedback(); this.closeCreateModal(); this.openShow(tour.id, ns.id); return; } }
                 if (mode === 'tour') { const nt = { id: 'tour_' + Date.now(), kind: 'tour', title, artist, category: 'Tour Oficial', status: ns.status, tourCrewRoster: JSON.parse(JSON.stringify(this.globalCrew.slice(0, 2))), shows: [ns] }; this.data.unshift(nt); this.saveWithFeedback(); this.closeCreateModal(); this.openShow(nt.id, ns.id); }
                 else { const ne = { id: 'event_' + Date.now(), kind: 'single', title, artist, category: 'Evento Oficial Alpha', status: ns.status, tourCrewRoster: JSON.parse(JSON.stringify(this.globalCrew.slice(0, 2))), show: ns }; this.data.unshift(ne); this.saveWithFeedback(); this.closeCreateModal(); this.openShow(ne.id, ne.show.id); }
             },
             duplicateShowInTour(tourId, showId) {
                 const tour = this.data.find(t => t.id === tourId); const orig = tour?.shows.find(s => s.id === showId); if (!orig) return;
-                const nc = prompt('Nome da nova praça (Ex: Curitiba - PR):', 'Curitiba - PR'); if (!nc) return;
+                const nc = prompt('Nome da nova praça (Ex: Curitiba - PR):', ''); if (!nc) return;
                 const copy = JSON.parse(JSON.stringify(orig)); copy.id = 'show_' + Date.now(); copy.city = nc; tour.shows.push(copy); this.saveWithFeedback(); this.render();
             },
             deleteItem(id) { if (!confirm('Eliminar este registo?')) return; this.data = this.data.filter(i => i.id !== id); if (window.firebaseDeleteDoc) window.firebaseDeleteDoc("alpha_productions_v42", id).catch(() => {}); this.saveWithFeedback(); this.navigateHome(); },
@@ -2388,7 +2430,7 @@
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold uppercase text-alpha-muted mb-1">Valor Contratado (R$)</label>
-                        <input type="number" step="0.01" id="ae-contracted-val" oninput="app.autoCalcModalCommission()" placeholder="5000.00" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2.5 py-2 status-pos font-extrabold">
+                        <input type="number" step="0.01" id="ae-contracted-val" oninput="app.autoCalcModalCommission(); window.AlphaPay && AlphaPay.modalRecalc()" placeholder="5000.00" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2.5 py-2 status-pos font-extrabold">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold uppercase status-warn mb-1">% Comissão </label>
@@ -2402,7 +2444,7 @@
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     <div>
                         <label class="block text-[10px] font-bold uppercase text-alpha-muted mb-1">Valor Sinal (R$)</label>
-                        <input type="number" step="0.01" id="ae-sinal-val" placeholder="2500.00" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2.5 py-1.5 text-alpha-title font-bold">
+                        <input type="number" step="0.01" id="ae-sinal-val" oninput="window.AlphaPay && AlphaPay.modalRecalc()" placeholder="2500.00" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2.5 py-1.5 text-alpha-title font-bold">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold uppercase text-alpha-muted mb-1">Vencimento Sinal</label>
@@ -2540,14 +2582,28 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
         app.clientFilterState = '';
         app.clientFilterSearch = '';
 
+        const putChanged = (col, obj) => (window.__alphaPutIfChanged ? window.__alphaPutIfChanged(col, obj) : setDoc(doc(window.firebaseDb, col, String(obj.id)), obj));
         window.saveArtistRosterToCloud = async () => {
             if (!window.firebaseDb) return;
-            try { await Promise.all((app.artistsRoster || []).map(a => setDoc(doc(window.firebaseDb, "alpha_artists_roster_v42", String(a.id)), a))); } catch (e) {}
+            try { await Promise.all((app.artistsRoster || []).map(a => putChanged("alpha_artists_roster_v42", a))); } catch (e) {}
         };
         window.saveArtistClientToCloud = async (cli) => {
             if (!window.firebaseDb || !cli?.id) return;
-            try { await setDoc(doc(window.firebaseDb, "alpha_artist_clients_v42", String(cli.id)), cli); } catch (e) {}
+            try { await putChanged("alpha_artist_clients_v42", cli); } catch (e) {}
         };
+        // Tempo real para artistas, equipe dos artistas e clientes (antes só carregava 1 vez ao abrir)
+        if (window.firebaseDb) {
+            const markA = (col, arr) => { try { arr.forEach(o => { if (o && o.id !== undefined && window.__alphaSyncedSig) window.__alphaSyncedSig.set(col + '/' + o.id, window.__alphaCanon(o)); }); } catch (e) {} };
+            const whenIdle = (k, fn) => { if (window.__alphaWhenIdle) window.__alphaWhenIdle(k, fn); else { fn(); app.render(); } };
+            onSnapshot(collection(window.firebaseDb, "alpha_artists_roster_v42"), (snap) => {
+                const l = []; snap.forEach(d => l.push(d.data())); if (l.length === 0) return; markA("alpha_artists_roster_v42", l);
+                whenIdle('artists', () => { app.artistsRoster = l; localStorage.setItem('alpha_artists_roster_v42', JSON.stringify(l)); if (app.renderSidebarArtistsMenu) app.renderSidebarArtistsMenu(); });
+            });
+            onSnapshot(collection(window.firebaseDb, "alpha_artist_clients_v42"), (snap) => {
+                const l = []; snap.forEach(d => l.push(d.data())); if (l.length === 0) return; markA("alpha_artist_clients_v42", l);
+                whenIdle('artistClients', () => { app.artistClients = l; localStorage.setItem('alpha_artist_clients_v42', JSON.stringify(l)); });
+            });
+        }
 
         if (window.firebaseDb) {
             Promise.all([
@@ -2733,7 +2789,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
             const commPct = typeof af.commissionPct !== 'undefined' ? Number(af.commissionPct) : 20;
             const commVal = typeof af.commissionValue !== 'undefined' ? Number(af.commissionValue) : ((contracted * commPct) / 100);
             const netArtist = Math.max(0, contracted - commVal);
-            const received = (af.sinalPaid ? Number(af.sinalValue || 0) : 0) + (af.saldoPaid ? Number(af.saldoValue || 0) : 0);
+            const received = window.AlphaPay.received(af);
             const pending = Math.max(0, contracted - received);
             return { feeType: af.feeType || 'Cachê', contracted, commPct, commVal, netArtist, received, pending, af };
         };
@@ -2837,7 +2893,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                         const waResp = this.getWhatsAppUrl(s.specs?.telefoneLocal);
 
                         return `
-                            <div class="bg-alpha-card border border-alpha-border rounded-2xl p-5 flex flex-col justify-between shadow-lg">
+                            <div class="bg-alpha-card ${this.socialCardClass ? this.socialCardClass(item) : ''} border border-alpha-border rounded-2xl p-5 flex flex-col justify-between shadow-lg">
                                 <div>
                                     <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
                                         <span class="text-xs font-extrabold uppercase px-2.5 py-0.5 rounded badge-info">${item.eventType || item.category}</span>
@@ -2878,8 +2934,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                                             <span class="px-1.5 py-0.5 rounded text-[10px] ${sinalAlert.cls}">${af.sinalPaid ? '✅ Pago' : sinalAlert.label}</span>
                                         </div>
                                         <div class="bg-alpha-dark px-3 py-1.5 rounded-lg border border-alpha-border flex items-center justify-between">
-                                            <span>Saldo: <strong>${this.formatCurrency(af.saldoValue || 0)}</strong> (${this.formatDate(af.saldoDate)})</span>
-                                            <span class="px-1.5 py-0.5 rounded text-[10px] ${saldoAlert.cls}">${af.saldoPaid ? '✅ Pago' : saldoAlert.label}</span>
+                                            ${this.alphaSaldoCell(af, saldoAlert)}
                                         </div>
                                     </div>
 
@@ -3195,7 +3250,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
             const saldoVal = Number(document.getElementById('ae-saldo-val').value || 0);
             const saldoDate = document.getElementById('ae-saldo-date').value;
 
-            const ns = createFullShowTemplate({
+            const ns = createBlankShow({
                 city, state: uf, venue, address, date, status: 'Confirmado',
                 artist: art.name, produtorLocal: contact, telefoneLocal: whatsapp
             });
@@ -3220,11 +3275,11 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                 ceremonialistName: document.getElementById('ae-ceremonialist').value.trim(),
                 ceremonialistPhone: document.getElementById('ae-ceremonialist-phone').value.trim(),
                 repertoireChecklist: [
-                    { moment: 'Música de Entrada Principal (Noivos / Debutante / Abertura)', song: '', time: '21:00', done: false },
-                    { moment: 'Dança Principal / Valsa / Momento Especial', song: '', time: '22:00', done: false },
-                    { moment: 'Abertura Oficial de Pista (Setlist Principal)', song: '', time: '22:30', done: false },
-                    { moment: 'Músicas Obrigatórias Pedidas pelo Cliente', song: '', time: '', done: false },
-                    { moment: 'Músicas / Estilos que NÃO devem tocar', song: '', time: '', done: false }
+                    { moment: '', song: '', time: '', done: false },
+                    { moment: '', song: '', time: '', done: false },
+                    { moment: '', song: '', time: '', done: false },
+                    { moment: '', song: '', time: '', done: false },
+                    { moment: '', song: '', time: '', done: false }
                 ]
             };
 
@@ -3473,9 +3528,9 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                 show.socialDetails = {
                     honoreeNames: '', ceremonialistName: '', ceremonialistPhone: '',
                     repertoireChecklist: [
-                        { moment: 'Música de Entrada Principal (Noivos / Debutante / Abertura)', song: '', time: '21:00', done: false },
-                        { moment: 'Dança Principal / Valsa / Momento Especial', song: '', time: '22:00', done: false },
-                        { moment: 'Abertura Oficial de Pista', song: '', time: '22:30', done: false }
+                        { moment: '', song: '', time: '', done: false },
+                        { moment: '', song: '', time: '', done: false },
+                        { moment: '', song: '', time: '', done: false }
                     ]
                 };
             }
@@ -3558,7 +3613,11 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                 af.commissionPct = Number(((Number(val || 0) / cVal) * 100).toFixed(1));
             }
 
-            const recVal = (af.sinalPaid ? Number(af.sinalValue || 0) : 0) + (af.saldoPaid ? Number(af.saldoValue || 0) : 0);
+            if (field === 'contractedValue' || field === 'sinalValue') {
+                if (af.payMode === 'sinal_parcelas') { af.saldoValue = Math.max(0, window.AlphaPay.round2(cVal - Number(af.sinalValue || 0))); window.AlphaPay.redistribute(af); }
+                else if (!af.saldoPaid) { af.saldoValue = Math.max(0, window.AlphaPay.round2(cVal - Number(af.sinalValue || 0))); }
+            }
+            const recVal = window.AlphaPay.received(af);
             if (s.budget?.receitas?.grupos?.[1]?.itens?.[0]) {
                 s.budget.receitas.grupos[1].itens[0].unitario = cVal;
                 s.budget.receitas.grupos[1].itens[0].recebido = recVal;
@@ -3612,7 +3671,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
             if (!s) return;
             if (!s.socialDetails) s.socialDetails = { repertoireChecklist: [] };
             if (!s.socialDetails.repertoireChecklist) s.socialDetails.repertoireChecklist = [];
-            s.socialDetails.repertoireChecklist.push({ moment: 'Novo Momento / Música da Pista', song: '', time: '', done: false });
+            s.socialDetails.repertoireChecklist.push({ moment: '', song: '', time: '', done: false });
             this.saveWithFeedback();
             this.render();
         };
@@ -3699,7 +3758,14 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                         list.push({ parentId: parent.id, showId: s.id, showTitle: `${parent.artist}: ${parent.title}`, itemDesc: `RECEBER SINAL (${af.feeType || 'Cachê'})`, amount: Number(af.sinalValue), date: af.sinalDate, state: st });
                     }
                 }
-                if (!af.saldoPaid && Number(af.saldoValue || 0) > 0 && af.saldoDate) {
+                if (af.payMode === 'sinal_parcelas') {
+                    (af.parcelasMensais || []).forEach((p, pi) => {
+                        if (p.paid || !(Number(p.value || 0) > 0) || !p.dueDate) return;
+                        const st = this.checkPaymentAlertState(p.dueDate, false);
+                        if (st.status === 'overdue' || st.status === 'due_soon') list.push({ parentId: parent.id, showId: s.id, showTitle: `${parent.artist}: ${parent.title}`, itemDesc: `RECEBER PARCELA ${pi + 1}/${(af.parcelasMensais || []).length} (${af.feeType || 'Cachê'})`, amount: Number(p.value), date: p.dueDate, state: st });
+                    });
+                }
+                if (af.payMode !== 'sinal_parcelas' && !af.saldoPaid && Number(af.saldoValue || 0) > 0 && af.saldoDate) {
                     const st = this.checkPaymentAlertState(af.saldoDate, false);
                     if (st.status === 'overdue' || st.status === 'due_soon') {
                         list.push({ parentId: parent.id, showId: s.id, showTitle: `${parent.artist}: ${parent.title}`, itemDesc: `RECEBER SALDO (${af.feeType || 'Cachê'})`, amount: Number(af.saldoValue), date: af.saldoDate, state: st });
@@ -4003,9 +4069,9 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
             const isPrivateParty = ['Casamento', 'XV Anos', 'Aniversário'].includes(evType);
             const produtorResponsavel = isPrivateParty ? 'Vivi Medeiros' : 'Higor Medeiros';
 
-            const ns = createFullShowTemplate({
+            const ns = createBlankShow({
                 city, state: uf, venue, address, date, status: 'Confirmado',
-                artist: art.name, produtorLocal: `${contact} (Prod: ${produtorResponsavel})`, telefoneLocal: whatsapp
+                artist: art.name, produtorLocal: contact ? `${contact} (Prod: ${produtorResponsavel})` : '', telefoneLocal: whatsapp
             });
 
             ns.assignedCrewIds = [];
@@ -4013,6 +4079,17 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                 feeType, contractedValue: contractedVal, commissionPct: commPct, commissionValue: commVal,
                 sinalValue: sinalVal, sinalDate: sinalDate, sinalPaid: false, saldoValue: saldoVal, saldoDate: saldoDate, saldoPaid: false
             };
+            {
+                const af0 = ns.artistFinancials;
+                const payMode = document.getElementById('ae-mod-parcelamento')?.value || 'sinal_saldo';
+                const qtyP = parseInt(document.getElementById('ae-qtd-parcelas')?.value || '0', 10);
+                af0.sinalPaid = !!document.getElementById('ae-pagto-sinal-ja-pago')?.checked;
+                if (payMode === 'sinal_parcelas' && qtyP > 0 && window.AlphaPay) {
+                    af0.payMode = 'sinal_parcelas'; af0.parcelasQtd = qtyP;
+                    af0.saldoValue = Math.max(0, AlphaPay.round2(contractedVal - sinalVal)); af0.saldoDate = '';
+                    af0.parcelasMensais = AlphaPay.buildParcelas(contractedVal, sinalVal, qtyP, document.getElementById('ae-first-parcela-date')?.value || '', date);
+                } else { af0.payMode = 'sinal_saldo'; af0.parcelasMensais = []; }
+            }
             ns.serviceContract = { name: '', data: '' };
             ns.socialDetails = {
                 eventType: evType,
@@ -4020,9 +4097,9 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                 ceremonialistName: document.getElementById('ae-ceremonialist')?.value.trim() || '',
                 ceremonialistPhone: document.getElementById('ae-ceremonialist-phone')?.value.trim() || '',
                 repertoireChecklist: [
-                    { moment: 'Música de Entrada Principal', song: '', time: '21:00', done: false },
-                    { moment: 'Dança Principal / Valsa', song: '', time: '22:00', done: false },
-                    { moment: 'Abertura de Pista', song: '', time: '22:30', done: false }
+                    { moment: '', song: '', time: '', done: false },
+                    { moment: '', song: '', time: '', done: false },
+                    { moment: '', song: '', time: '', done: false }
                 ]
             };
 
@@ -4071,13 +4148,13 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
         app.renderDjMotheSpecialTab = function(show) {
             if (!show.djMotheSpecs) {
                 show.djMotheSpecs = {
-                    hasLedRobot: 'NÃO', ledRobotCount: '1',
+                    hasLedRobot: 'NÃO', ledRobotCount: '',
                     hasSpecialFx: 'NÃO', specialFxDesc: '',
-                    hasSound: 'SIM', soundPax: '300 pessoas', soundSpace: 'Fechado',
-                    hasLighting: 'SIM', lightingEquip: 'Moving Heads e Refletores LED',
-                    hasParisFloor: 'SIM', parisFloorSize: '4x4m',
+                    hasSound: 'SIM', soundPax: '', soundSpace: '',
+                    hasLighting: 'SIM', lightingEquip: '',
+                    hasParisFloor: 'SIM', parisFloorSize: '',
                     soundScope: 'Festa toda',
-                    arrivalTime: '19:00', showTime: '01:00'
+                    arrivalTime: '', showTime: ''
                 };
             }
             const ms = show.djMotheSpecs;
@@ -4182,15 +4259,11 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
                             </div>
                             <div class="bg-alpha-dark p-3.5 rounded-xl border border-alpha-border">
                                 <label class="text-[10px] uppercase font-bold status-warn block mb-1">Horário de Chegada</label>
-                                <select onchange="app.updateDjMotheSpec('arrivalTime', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">
-                                    ${['17:00', '18:00', '18:30', '19:00', '19:30', '20:00', '21:00'].map(h => `<option value="${h}" ${ms.arrivalTime === h ? 'selected' : ''}>${h}</option>`).join('')}
-                                </select>
+                                <input type="time" step="60" value="${ms.arrivalTime || ''}" onchange="app.updateDjMotheSpec('arrivalTime', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">
                             </div>
                             <div class="bg-alpha-dark p-3.5 rounded-xl border border-alpha-border">
                                 <label class="text-[10px] uppercase font-bold status-pos block mb-1">Horário do Show / Início</label>
-                                <select onchange="app.updateDjMotheSpec('showTime', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">
-                                    ${['21:00', '22:00', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00'].map(h => `<option value="${h}" ${ms.showTime === h ? 'selected' : ''}>${h}</option>`).join('')}
-                                </select>
+                                <input type="time" step="60" value="${ms.showTime || ''}" onchange="app.updateDjMotheSpec('showTime', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">
                             </div>
                         </div>
                     </div>
@@ -4496,13 +4569,13 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
         app.renderDjMotheSpecialTab = function(show) {
             if (!show.djMotheSpecs) {
                 show.djMotheSpecs = {
-                    hasLedRobot: 'NÃO', ledRobotCount: '1',
+                    hasLedRobot: 'NÃO', ledRobotCount: '',
                     hasSpecialFx: 'NÃO', specialFxDesc: '',
-                    hasSound: 'SIM', soundPax: '300 pessoas', soundSpace: 'Fechado',
-                    hasLighting: 'SIM', lightingEquip: 'Moving Heads e Refletores LED',
-                    hasParisFloor: 'SIM', parisFloorSize: '4x4m',
+                    hasSound: 'SIM', soundPax: '', soundSpace: '',
+                    hasLighting: 'SIM', lightingEquip: '',
+                    hasParisFloor: 'SIM', parisFloorSize: '',
                     soundScope: 'Festa toda',
-                    arrivalTime: '19:00', showTime: '01:00'
+                    arrivalTime: '', showTime: ''
                 };
             }
             const ms = show.djMotheSpecs;
@@ -4564,8 +4637,8 @@ import { collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https:/
 
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div class="bg-alpha-dark p-3.5 rounded-xl border border-alpha-border"><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Som para Pista ou Festa Toda?</label><select onchange="app.updateDjMotheSpec('soundScope', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold"><option value="Apenas para Pista" ${ms.soundScope === 'Apenas para Pista' ? 'selected' : ''}>Apenas Pista</option><option value="Festa toda" ${ms.soundScope !== 'Apenas para Pista' ? 'selected' : ''}>Festa Toda</option></select></div>
-                            <div class="bg-alpha-dark p-3.5 rounded-xl border border-alpha-border"><label class="text-[10px] uppercase font-bold status-warn block mb-1">Horário de Chegada</label><select onchange="app.updateDjMotheSpec('arrivalTime', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">${['17:00','18:00','18:30','19:00','19:30','20:00','21:00'].map(h => `<option value="${h}" ${ms.arrivalTime === h ? 'selected' : ''}>${h}</option>`).join('')}</select></div>
-                            <div class="bg-alpha-dark p-3.5 rounded-xl border border-alpha-border"><label class="text-[10px] uppercase font-bold status-pos block mb-1">Horário do Show</label><select onchange="app.updateDjMotheSpec('showTime', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">${['21:00','22:00','23:00','23:30','00:00','00:30','01:00','01:30','02:00'].map(h => `<option value="${h}" ${ms.showTime === h ? 'selected' : ''}>${h}</option>`).join('')}</select></div>
+                            <div class="bg-alpha-dark p-3.5 rounded-xl border border-alpha-border"><label class="text-[10px] uppercase font-bold status-warn block mb-1">Horário de Chegada</label><input type="time" step="60" value="${ms.arrivalTime || ''}" onchange="app.updateDjMotheSpec('arrivalTime', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold"></div>
+                            <div class="bg-alpha-dark p-3.5 rounded-xl border border-alpha-border"><label class="text-[10px] uppercase font-bold status-pos block mb-1">Horário do Show</label><input type="time" step="60" value="${ms.showTime || ''}" onchange="app.updateDjMotheSpec('showTime', this.value)" class="w-full h-9 bg-alpha-card border border-alpha-border rounded-lg px-3 text-alpha-title font-bold"></div>
                         </div>
                     </div>
                 </div>
@@ -4606,7 +4679,7 @@ window.addEventListener('load', () => {
                 ? Number(af.commissionValue) 
                 : Number(((contracted * commPct) / 100).toFixed(2));
             const netArtist = Math.max(0, contracted - commVal);
-            const received = (af.sinalPaid ? Number(af.sinalValue || 0) : 0) + (af.saldoPaid ? Number(af.saldoValue || 0) : 0);
+            const received = window.AlphaPay.received(af);
             const pending = Math.max(0, contracted - received);
 
             return { feeType: af.feeType || 'Cachê', contracted, commPct, commVal, netArtist, received, pending, af };
@@ -4634,6 +4707,7 @@ window.addEventListener('load', () => {
             if (!show.serviceContract) show.serviceContract = { name: '', data: '' };
             const stSinal = this.checkPaymentAlertState(af.sinalDate, af.sinalPaid || Number(af.sinalValue || 0) === 0);
             const stSaldo = this.checkPaymentAlertState(af.saldoDate, af.saldoPaid || Number(af.saldoValue || 0) === 0);
+            const isParc = af.payMode === 'sinal_parcelas';
 
             return `
                 <div class="space-y-6">
@@ -4678,6 +4752,21 @@ window.addEventListener('load', () => {
                             </div>
                         </div>
 
+                        <div class="flex flex-wrap items-end gap-3 mb-4 text-xs bg-alpha-card border border-alpha-border rounded-xl p-3">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Forma de pagamento</label>
+                                <select onchange="app.setArtistPayMode(this.value)" class="h-9 bg-alpha-dark border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">
+                                    <option value="sinal_saldo" ${!isParc ? 'selected' : ''}>Sinal + 1 Saldo Final</option>
+                                    <option value="sinal_parcelas" ${isParc ? 'selected' : ''}>Sinal + Parcelas Mensais</option>
+                                </select>
+                            </div>
+                            ${isParc ? `<div>
+                                <label class="text-[10px] uppercase font-bold status-warn block mb-1">Qtd. de parcelas</label>
+                                <input type="number" min="1" max="36" value="${af.parcelasQtd || (af.parcelasMensais || []).length || ''}" onchange="app.setArtistPayMode('sinal_parcelas', this.value)" placeholder="Ex: 5" class="w-24 h-9 bg-alpha-dark border border-alpha-border rounded-lg px-3 text-alpha-title font-bold">
+                            </div>
+                            <p class="text-[11px] text-alpha-muted pb-2">Cada parcela = (valor total − sinal) ÷ quantidade. Marque ✔ quando o cliente pagar.</p>` : ''}
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                             <div class="bg-alpha-card border border-alpha-border rounded-xl p-4">
                                 <div class="flex items-center justify-between mb-3">
@@ -4700,7 +4789,7 @@ window.addEventListener('load', () => {
                                 </label>
                             </div>
 
-                            <div class="bg-alpha-card border border-alpha-border rounded-xl p-4">
+${isParc ? this.renderArtistParcelasCard(af) : `                            <div class="bg-alpha-card border border-alpha-border rounded-xl p-4">
                                 <div class="flex items-center justify-between mb-3">
                                     <span class="font-extrabold text-alpha-title uppercase">2ª Parcela: SALDO RESTANTE</span>
                                     <span class="px-2 py-0.5 rounded text-[10px] ${stSaldo.cls}">${af.saldoPaid ? '✅ Saldo Recebido' : stSaldo.label}</span>
@@ -4719,7 +4808,7 @@ window.addEventListener('load', () => {
                                     <input type="checkbox" ${af.saldoPaid ? 'checked' : ''} onchange="app.updateArtistFinField('saldoPaid', this.checked)" class="w-4 h-4 accent-alpha-yellow">
                                     <span>Confirmar que o Saldo já foi pago pelo cliente</span>
                                 </label>
-                            </div>
+                            </div>`}
                         </div>
                     </div>
 
@@ -4821,9 +4910,15 @@ window.addEventListener('load', () => {
                             </div>
                             <div id="ae-box-qtd-parcelas" class="hidden">
                                 <label class="text-[9px] uppercase status-warn block mb-0.5">Qtd de Parcelas Mensais</label>
-                                <input type="number" id="ae-qtd-parcelas" value="3" min="1" max="12" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2 py-1.5 text-alpha-title font-bold text-xs">
+                                <input type="number" id="ae-qtd-parcelas" min="1" max="36" oninput="window.AlphaPay && AlphaPay.modalRecalc()" placeholder="Ex: 5" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2 py-1.5 text-alpha-title font-bold text-xs">
+                            </div>
+                            <div id="ae-box-first-parcela" class="hidden">
+                                <label class="text-[9px] uppercase status-warn block mb-0.5">Vencimento da 1ª Parcela</label>
+                                <input type="date" id="ae-first-parcela-date" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-2 py-1.5 text-alpha-title font-bold text-xs">
                             </div>
                         </div>
+                        <p id="ae-parcelas-preview" class="text-[11px] status-warn font-bold"></p>
+                        <p class="text-[10px] text-alpha-muted">O valor das parcelas é calculado sozinho: (valor total − sinal) ÷ quantidade. Se não informar o vencimento da 1ª parcela, as datas ficam mensais até o dia do evento.</p>
                     `;
                     finBox.appendChild(parcelasDiv);
                 }
@@ -4832,10 +4927,13 @@ window.addEventListener('load', () => {
 
         window.toggleAeParcelasMode = function(val) {
             const box = document.getElementById('ae-box-qtd-parcelas');
+            const box2 = document.getElementById('ae-box-first-parcela');
             if (box) {
                 if (val === 'sinal_parcelas') box.classList.remove('hidden');
                 else box.classList.add('hidden');
             }
+            if (box2) { if (val === 'sinal_parcelas') box2.classList.remove('hidden'); else box2.classList.add('hidden'); }
+            if (window.AlphaPay) AlphaPay.modalRecalc();
         };
 
         // 2. CORREÇÃO DO CADASTRO DE LEADS (MANUAL) E GERAÇÃO AUTOMÁTICA NO HISTÓRICO DE EVENTOS
@@ -4854,7 +4952,7 @@ window.addEventListener('load', () => {
 
         // 3. ABA DE CACHÊ COM CHECK DE BAIXA RÁPIDA E PARCELAS MENSAIS PARA A VIVI
         const baseRenderArtistFeeTab = app.renderArtistFeeAndContractTab;
-        if (baseRenderArtistFeeTab) {
+        if (false) {
             app.renderArtistFeeAndContractTab = function(show) {
                 const html = baseRenderArtistFeeTab.call(this, show);
                 const af = show.artistFinancials || {};
@@ -5115,7 +5213,7 @@ window.addEventListener('load', () => {
 
         // 1. RESTRINGE O PARCELAMENTO E TEXTO "GESTÃO DA VIVI" APENAS PARA EVENTOS SOCIAIS (CASAMENTO, 15 ANOS, ANIVERSÁRIO)
         const baseRenderArtistFeeTab = app.renderArtistFeeAndContractTab;
-        if (baseRenderArtistFeeTab) {
+        if (false) {
             app.renderArtistFeeAndContractTab = function(show) {
                 const html = baseRenderArtistFeeTab.call(this, show);
                 const parent = this.getActiveParent();
@@ -5225,7 +5323,7 @@ window.addEventListener('load', () => {
 
         // 2. RESTRINGE O PAINEL DE PARCELAMENTO DA VIVI APENAS PARA EVENTOS SOCIAIS DO DJ MOTHÉ
         const baseRenderArtistFeeTab = app.renderArtistFeeAndContractTab;
-        if (baseRenderArtistFeeTab) {
+        if (false) {
             app.renderArtistFeeAndContractTab = function(show) {
                 const html = baseRenderArtistFeeTab.call(this, show);
                 const parent = this.getActiveParent();
@@ -5419,54 +5517,6 @@ window.addEventListener('load', () => {
             };
         }
 
-        // 3. TRANSFORMAR TEXTOS DE EXEMPLO EM PLACEHOLDERS FANTASMAS SUAVES EM TODOS OS CAMPOS
-        const inputs = document.querySelectorAll('input[type="text"], input[type="number"], textarea');
-        inputs.forEach(input => {
-            const val = input.value || '';
-            // Se o valor atual parecer um texto de exemplo/instrução, move para placeholder suave
-            if (val.length > 3 && (val.includes('Ex:') || val.includes('ex:') || val.includes('Digite') || val.includes('Exemplo'))) {
-                input.placeholder = val;
-                input.value = '';
-            }
-        });
-
-        app.render();
-        console.log("✅ Ajustes V64 aplicados com sucesso!");
-    }, 500);
-});
-</script>
-<script id="alpha-patch-artistas-v65">
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        if (!window.app) return;
-
-        // 1. REMOÇÃO RADICAL DO BOTÃO DE PDF/RELATÓRIO DE VENDAS NA GESTÃO DE ARTISTAS
-        const origRenderArtistHubView = app.renderArtistHubView;
-        if (origRenderArtistHubView) {
-            app.renderArtistHubView = function() {
-                let html = origRenderArtistHubView.call(this);
-                // Remove qualquer botão ou linha que contenha menção a relatório de vendas ou ticketera na visão de artista
-                html = html.replace(/<button(?:(?!<\/button>)[\s\S])*?(?:Vendas|Ticketera|Relatório)(?:(?!<\/button>)[\s\S])*?<\/button>/gi, '');
-                return html;
-            };
-        }
-
-        // 2. CONVERSÃO AUTOMÁTICA DE TEXTOS PADRÃO ("A definir", trechos) EM PLACEHOLDERS FANTASMAS
-        const convertInputsToPlaceholders = () => {
-            const inputs = document.querySelectorAll('input[type="text"], textarea');
-            inputs.forEach(input => {
-                const val = (input.value || '').trim();
-                const defaultTextsToPlaceholder = [
-                    'A definir', 'a definir', 'Hotel a definir', 'Endereço a definir', 
-                    'Trecho:', 'Data:', 'Horário:', 'Voo'
-                ];
-                if (defaultTextsToPlaceholder.some(t => val.toLowerCase().includes(t.toLowerCase()))) {
-                    input.placeholder = val;
-                    input.value = ''; // Esvazia o input para virar texto fantasma suave
-                }
-            });
-        };
-        convertInputsToPlaceholders();
 
         // 3. ADEQUAÇÃO DO MÓDULO DE VAN (SEPARAÇÃO DE TRECHO DE IDA E TRECHO DE VOLTA COM HORÁRIOS)
         const origRenderLogisticsTab = app.renderLogisticsTab || app.renderLogisticsAndTeamTab;
@@ -5538,27 +5588,6 @@ window.addEventListener('load', () => {
     setTimeout(() => {
         if (!window.app) return;
 
-        // 1. CONVERSÃO REAL E FORÇADA DE CAMPOS FIXOS EM PLACEHOLDERS (MARCA D'ÁGUA)
-        const sanitizeInputsToPlaceholders = () => {
-            const allInputs = document.querySelectorAll('input[type="text"], textarea');
-            allInputs.forEach(input => {
-                const val = (input.value || '').trim();
-                const termsToClean = [
-                    'A definir', 'a definir', 'Hotel a definir', 'Endereço a definir', 
-                    'Trecho:', 'Data:', 'Horário:', 'Voo', 'São Paulo', 'Rio de Janeiro'
-                ];
-                // Se o campo contiver textos padrões, esvazia o valor e coloca como placeholder suave
-                if (termsToClean.some(term => val.toLowerCase() === term.toLowerCase() || (val.length < 35 && val.includes('definir')))) {
-                    input.placeholder = val;
-                    input.value = '';
-                }
-            });
-        };
-        sanitizeInputsToPlaceholders();
-
-        // Executa novamente após pequenos atrasos caso o app re-renderize componentes assíncronos
-        setTimeout(sanitizeInputsToPlaceholders, 800);
-        setTimeout(sanitizeInputsToPlaceholders, 1500);
 
         // 2. INTEGRAÇÃO DOS TRECHOS DE IDA E VOLTA ACOPLADOS AO SELETOR DE TRANSFER TERRESTRE (VAN / UBER)
         const origRenderLogisticsTab = app.renderLogisticsTab || app.renderLogisticsAndTeamTab;
@@ -5671,42 +5700,274 @@ window.addEventListener('load', () => {
     setTimeout(() => {
         if (!window.app) return;
 
-        // 1. FAXINA PROFUNDA: ZERA TODOS OS CAMPOS E REMOVE BLOCOS DUPLICADOS NO RODAPÉ
-        const cleanAndZeroInputs = () => {
-            // Remove qualquer bloco duplicado de trecho que tenha ficado solto no rodapé (abaixo da equipe)
-            const allElements = document.querySelectorAll('div, section');
-            allElements.forEach(el => {
-                const text = el.innerText || '';
-                // Se for um bloco isolado de "TRECHO DE VOLTA" ou similar perdido abaixo da equipe, deleta
-                if (false) {
-                    const parentCard = el.closest('.bg-alpha-card') || el;
-                    parentCard.remove();
-                }
-            });
-
-            // Zera todos os inputs e textareas que tenham textos padrão ou "definir"
-            const inputs = document.querySelectorAll('input[type="text"], textarea');
-            inputs.forEach(input => {
-                const val = (input.value || '').trim();
-                const defaultValuesToZero = [
-                    'A definir', 'a definir', 'Hotel a definir', 'Endereço a definir', 
-                    'Trecho:', 'Data:', 'Horário:', 'Voo', 'Ex:', 'ex:'
-                ];
-                if (defaultValuesToZero.some(term => val.toLowerCase().includes(term.toLowerCase())) ) {
-                    input.value = ''; // Deixa completamente zerado e limpo para digitação direta
-                    input.placeholder = '';
-                }
-            });
-        };
-
-        cleanAndZeroInputs();
-        setTimeout(cleanAndZeroInputs, 800);
-        setTimeout(cleanAndZeroInputs, 1500);
 
         app.render();
         console.log("✅ Faxina e Limpeza V69 aplicadas com sucesso!");
     }, 400);
 });
+</script>
+
+<script id="alpha-placeholders">
+/* ===== Marca d'água (placeholder) em TODOS os campos de preenchimento =====
+   - Os campos ficam vazios; o exemplo aparece só como sombra cinza.
+   - Um único bloco cuida de tudo: modais, abas das cidades, telas de artistas, etc. */
+(function () {
+    const BY_KEY = {
+        title: 'Ex: Tour Nome do Artista 2026', artist: 'Ex: Nome do artista ou banda', city: 'Ex: Recife - PE',
+        venue: 'Ex: Nome do local ou casa de shows', produtorLocal: 'Ex: Nome do responsável local', telefoneLocal: 'Ex: (00) 90000-0000',
+        stageManager: 'Ex: Nome do Stage Manager - Empresa', alvaraStatus: 'Ex: Aprovado / Em análise', energiaPalco: 'Ex: Gerador 150 kVA / rede local',
+        horarioAbertura: 'Ex: 21:00', horarioShow: 'Ex: 00:30',
+        observacoes: 'Ex: Acesso do caminhão pela rua lateral, restrição de som após as 02:00, contato do síndico...',
+        time: 'Ex: 08:00', activity: 'Ex: Chegada das viaturas e descarga', area: 'Ex: Palco', owner: 'Ex: Produção / Roadie',
+        audio: 'Ex:\nSISTEMA DE SOM (PA & MONITOR):\n- PA Line Array\n- Console FOH\n- Sistema In-Ear\n- Microfones sem fio',
+        light: 'Ex:\nSISTEMA DE ILUMINAÇÃO:\n- Console de iluminação\n- Moving Heads Beam / Wash\n- Strobos e Blinders',
+        ledSize: 'Ex: 8,00m x 4,00m (P3.9 Outdoor)',
+        roomName: 'Ex: Camarim do artista', item: 'Ex: 01 sofá de 3 lugares, espelho, arara com cabides', notes: 'Ex: Climatizado',
+        cod: 'Ex: 1.1', desc: 'Ex: Locação do espaço', empresa: 'Ex: Nome do fornecedor', detalhes: 'Ex: Observações do item',
+        lote: 'Ex: 1º Lote', origem: 'Ex: Sympla / Bilheteria',
+        unitario: '0,00', pago: '0,00', valorSinal: '0,00', recebido: '0,00', qtd: '0',
+        contractedValue: '0,00', commissionValue: '0,00', sinalValue: '0,00', saldoValue: '0,00', value: '0,00',
+        moment: 'Ex: Música de entrada (noivos / debutante / abertura)', song: 'Ex: Nome da música / artista',
+        name: 'Ex: Nome', address: 'Ex: Rua, número, bairro - Cidade/UF', phone: 'Ex: (00) 0000-0000',
+        driverName: 'Ex: Nome do motorista', vanPlate: 'Ex: ABC-1D23', companyName: 'Ex: Nome da empresa', routeText: 'Ex: Aeroporto x Hotel x Local do evento',
+        passenger: 'Ex: Nome do passageiro', route: 'Ex: GRU x REC', flightNo: 'Ex: LA3412', loc: 'Ex: Código da reserva',
+        returnRoute: 'Ex: REC x GRU', returnFlightNo: 'Ex: LA3499', returnLoc: 'Ex: Código da reserva', returnTime: 'Ex: 14:00 - 16:45'
+    };
+    const BY_ID = {
+        'my-acc-name': 'Ex: Maria da Silva', 'my-acc-email': 'Ex: nome@email.com', 'my-acc-password': 'Digite a nova senha', 'my-acc-whatsapp': '(00) 90000-0000',
+        'crew-name': 'Ex: João da Silva', 'crew-cpf': '000.000.000-00', 'crew-role': 'Ex: Roadie / Técnico de Som',
+        'col-name': 'Ex: Maria da Silva', 'col-role': 'Ex: Produtora / Financeiro', 'col-email': 'Ex: nome@email.com', 'col-password': 'Crie uma senha de acesso', 'col-whatsapp': '(00) 90000-0000',
+        'sup-company': 'Ex: Seven Fly Transportes', 'sup-cnpj': '00.000.000/0001-00', 'sup-contact': 'Ex: Carlos (comercial)', 'sup-whatsapp': '(00) 90000-0000',
+        'sup-city': 'Ex: Recife', 'sup-state': 'Ex: PE', 'sup-service': 'Ex: Locação de vans, som, luz, estrutura, catering...',
+        'edit-city-venue': 'Ex: Nome do local ou casa de shows', 'edit-city-address': 'Ex: Rua, número, bairro, cidade - UF', 'edit-city-capacity': 'Ex: 5.000 pessoas',
+        'input-title': 'Ex: Tour Nome do Artista 2026', 'input-artist': 'Ex: Nome do artista ou banda',
+        'input-venue': 'Ex: Nome do local ou casa de shows', 'input-address': 'Ex: Rua, número, bairro, cidade - UF', 'input-capacity': 'Ex: 5.000 pessoas'
+    };
+    const ZERO_KEYS = ['unitario', 'pago', 'valorSinal', 'recebido', 'qtd', 'contractedValue', 'commissionValue', 'sinalValue', 'saldoValue', 'value'];
+    const SKIP_TYPES = ['checkbox', 'radio', 'file', 'hidden', 'button', 'submit', 'range', 'color', 'date', 'time', 'datetime-local', 'month', 'week', 'email', 'password'];
+
+    function fieldKey(el) {
+        const oc = (el.getAttribute('onchange') || el.getAttribute('oninput') || '');
+        if (oc.indexOf('updateHospitalityRoomName') !== -1) return 'roomName';
+        const words = []; oc.replace(/'([A-Za-z_]+)'/g, function (m, w) { words.push(w); return m; });
+        for (let i = words.length - 1; i >= 0; i--) if (Object.prototype.hasOwnProperty.call(BY_KEY, words[i])) return words[i];
+        return '';
+    }
+    function labelText(el) {
+        let lab = el.previousElementSibling;
+        if (!(lab && /^(LABEL|SPAN|P)$/.test(lab.tagName))) lab = el.parentElement && el.parentElement.querySelector('label');
+        const t = lab ? (lab.textContent || '').replace(/[*:]/g, '').replace(/\s+/g, ' ').trim() : '';
+        return (t && t.length < 45) ? t : '';
+    }
+    function apply(root) {
+        (root || document).querySelectorAll('input, textarea').forEach(function (el) {
+            if (SKIP_TYPES.indexOf(el.type) !== -1) return;
+            const key = fieldKey(el);
+            // números zerados viram campo vazio com sombra "0,00" (o valor guardado continua 0)
+            if (el.type === 'number' && key && ZERO_KEYS.indexOf(key) !== -1 && (el.value === '0' || el.value === '0.00' || el.value === '0.0')) el.value = '';
+            if (el.placeholder && el.placeholder.trim()) return;
+            let ph = BY_ID[el.id] || (key ? BY_KEY[key] : '');
+            if (!ph) { const lt = labelText(el); if (lt) ph = (el.type === 'number' ? '' : 'Digite ') + (el.type === 'number' ? '0' : lt.toLowerCase()); }
+            if (ph) el.placeholder = ph;
+        });
+    }
+    let queued = false;
+    function schedule() { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; try { apply(document); } catch (e) {} }); }
+    function start() { apply(document); new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true }); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+    window.alphaApplyPlaceholders = apply;
+})();
+</script>
+
+<script id="alpha-v100">
+/* ===== Pagamentos (sinal + parcelas), cards sociais e Alimentação dos eventos de artistas ===== */
+(function () {
+    const SOCIAL = ['Casamento', 'XV Anos', 'Aniversário', 'Outros'];
+    const MEALS = [
+        ['breakfast', '☕ Café da manhã', 'Ex: Hotel (café incluso) / Padaria do bairro'],
+        ['lunch', '🍽️ Almoço', 'Ex: Restaurante Paludo'],
+        ['snack', '🥪 Lanche no camarim', 'Ex: Camarim — frutas, sanduíches, água e suco'],
+        ['dinner', '🍴 Jantar', 'Ex: Restaurante Paludo']
+    ];
+    const brl = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    const AlphaPay = {
+        round2: (n) => Math.round((Number(n) || 0) * 100) / 100,
+        addMonths(iso, n) {
+            if (!iso) return '';
+            const p = String(iso).split('-').map(Number); if (p.length < 3 || !p[0]) return '';
+            const t = new Date(p[0], p[1] - 1 + n, 1);
+            const last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+            return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(Math.min(p[2], last)).padStart(2, '0');
+        },
+        split(total, qty) {
+            const base = Math.floor(total * 100 / qty) / 100; const arr = Array(qty).fill(base);
+            arr[qty - 1] = this.round2(total - base * (qty - 1)); return arr;
+        },
+        buildParcelas(total, sinal, qty, firstDate, eventDate) {
+            const rest = Math.max(0, this.round2(total - sinal)); const vals = this.split(rest, qty); const out = [];
+            for (let i = 0; i < qty; i++) {
+                const due = firstDate ? this.addMonths(firstDate, i) : (eventDate ? this.addMonths(eventDate, i - (qty - 1)) : '');
+                out.push({ value: vals[i], dueDate: due, paid: false });
+            }
+            return out;
+        },
+        received(af) {
+            af = af || {}; let r = af.sinalPaid ? Number(af.sinalValue || 0) : 0;
+            if (af.payMode === 'sinal_parcelas') (af.parcelasMensais || []).forEach(p => { if (p.paid) r += Number(p.value || 0); });
+            else if (af.saldoPaid) r += Number(af.saldoValue || 0);
+            return r;
+        },
+        redistribute(af) {
+            const list = af.parcelasMensais || []; const open = list.filter(p => !p.paid); if (!open.length) return;
+            const paidSum = list.filter(p => p.paid).reduce((a, p) => a + Number(p.value || 0), 0);
+            const rest = Math.max(0, this.round2(Number(af.contractedValue || 0) - Number(af.sinalValue || 0) - paidSum));
+            const vals = this.split(rest, open.length); open.forEach((p, i) => { p.value = vals[i]; });
+        },
+        modalRecalc() {
+            const g = (id) => document.getElementById(id);
+            const total = Number(g('ae-contracted-val')?.value || 0), sinal = Number(g('ae-sinal-val')?.value || 0);
+            const sEl = g('ae-saldo-val');
+            if (sEl) sEl.value = (total || sinal) ? Math.max(0, this.round2(total - sinal)).toFixed(2) : '';
+            const mode = g('ae-mod-parcelamento')?.value; const qty = parseInt(g('ae-qtd-parcelas')?.value || '0', 10);
+            const pv = g('ae-parcelas-preview'); const rest = Math.max(0, this.round2(total - sinal));
+            const dateBox = g('ae-saldo-date') && g('ae-saldo-date').parentElement;
+            if (dateBox) dateBox.style.display = (mode === 'sinal_parcelas') ? 'none' : '';
+            if (pv) {
+                if (mode === 'sinal_parcelas' && qty > 0 && rest > 0) {
+                    const v = this.split(rest, qty);
+                    pv.textContent = '→ ' + qty + ' parcela' + (qty > 1 ? 's' : '') + ' de ' + brl(v[0]) + (v[qty - 1] !== v[0] ? ' (a última: ' + brl(v[qty - 1]) + ')' : '') + ' — saldo a parcelar: ' + brl(rest);
+                } else pv.textContent = '';
+            }
+        }
+    };
+    window.AlphaPay = AlphaPay;
+
+    function syncReceived(app, s) {
+        const af = s.artistFinancials || {};
+        const it = s.budget && s.budget.receitas && s.budget.receitas.grupos && s.budget.receitas.grupos[1] && s.budget.receitas.grupos[1].itens && s.budget.receitas.grupos[1].itens[0];
+        if (it) { it.unitario = Number(af.contractedValue || 0); it.recebido = AlphaPay.received(af); }
+    }
+
+    function install(app, full) {
+        app.socialCardClass = function (item) { return (item && item.artistId && SOCIAL.indexOf(item.eventType) !== -1) ? 'alpha-card-social' : ''; };
+
+        app.alphaSaldoCell = function (af, saldoAlert) {
+            if (af.payMode === 'sinal_parcelas') {
+                const list = af.parcelasMensais || []; const paid = list.filter(p => p.paid).length;
+                const next = list.find(p => !p.paid); const st = next ? this.checkPaymentAlertState(next.dueDate, false) : null;
+                return '<span>Parcelas: <strong>' + paid + '/' + list.length + ' pagas</strong>' + (next ? ' • próxima ' + brl(next.value) + ' (' + this.formatDate(next.dueDate) + ')' : '') + '</span>' +
+                    '<span class="px-1.5 py-0.5 rounded text-[10px] ' + (next ? st.cls : 'badge-pos') + '">' + (next ? st.label : '✅ Quitado') + '</span>';
+            }
+            return '<span>Saldo: <strong>' + this.formatCurrency(af.saldoValue || 0) + '</strong> (' + this.formatDate(af.saldoDate) + ')</span>' +
+                '<span class="px-1.5 py-0.5 rounded text-[10px] ' + saldoAlert.cls + '">' + (af.saldoPaid ? '✅ Pago' : saldoAlert.label) + '</span>';
+        };
+
+        app.renderArtistParcelasCard = function (af) {
+            const list = af.parcelasMensais || []; const paid = list.filter(p => p.paid).length;
+            const tot = list.reduce((a, p) => a + Number(p.value || 0), 0);
+            const rows = list.map((p, i) => {
+                const st = this.checkPaymentAlertState(p.dueDate, p.paid);
+                return '<div class="grid grid-cols-2 sm:grid-cols-5 gap-2 items-center bg-alpha-dark border border-alpha-border rounded-lg p-2.5">' +
+                    '<label class="flex items-center gap-2 cursor-pointer col-span-2 sm:col-span-1"><input type="checkbox" ' + (p.paid ? 'checked' : '') + ' onchange="app.toggleArtistParcelaPaid(' + i + ', this.checked)" class="w-4 h-4 accent-alpha-yellow"><strong class="text-alpha-title">Parcela ' + (i + 1) + '/' + list.length + '</strong></label>' +
+                    '<input type="number" step="0.01" value="' + (p.value || '') + '" onchange="app.updateArtistParcela(' + i + ', \'value\', Number(this.value))" placeholder="0,00" class="h-9 bg-alpha-card border border-alpha-border rounded-lg px-2.5 text-alpha-title font-bold w-full">' +
+                    '<input type="date" value="' + (p.dueDate || '') + '" onchange="app.updateArtistParcela(' + i + ', \'dueDate\', this.value)" class="h-9 bg-alpha-card border border-alpha-border rounded-lg px-2.5 text-alpha-title w-full">' +
+                    '<span class="px-2 py-1 rounded text-[10px] text-center ' + st.cls + ' sm:col-span-2">' + (p.paid ? '✅ Parcela recebida' : st.label) + '</span></div>';
+            }).join('');
+            return '<div class="md:col-span-2 bg-alpha-card border border-alpha-border rounded-xl p-4">' +
+                '<div class="flex flex-wrap items-center justify-between gap-2 mb-3"><span class="font-extrabold text-alpha-title uppercase">Parcelas mensais — ' + paid + '/' + list.length + ' pagas</span>' +
+                '<span class="text-[11px] text-alpha-muted">Total das parcelas: <strong class="text-alpha-title">' + brl(tot) + '</strong></span></div>' +
+                '<div class="space-y-2 text-xs">' + (rows || '<p class="text-alpha-muted">Informe a quantidade de parcelas acima.</p>') + '</div></div>';
+        };
+
+        app.setArtistPayMode = function (mode, qty) {
+            const s = this.getActiveShow(); if (!s) return;
+            const af = s.artistFinancials || (s.artistFinancials = {});
+            const total = Number(af.contractedValue || 0), sinal = Number(af.sinalValue || 0);
+            af.payMode = mode;
+            if (mode === 'sinal_parcelas') {
+                const n = Math.max(1, Math.min(36, parseInt(qty || af.parcelasQtd || 3, 10) || 3));
+                const old = af.parcelasMensais || [];
+                const fresh = AlphaPay.buildParcelas(total, sinal, n, '', s.date);
+                af.parcelasQtd = n;
+                af.parcelasMensais = fresh.map((p, i) => old[i] ? Object.assign(p, { dueDate: old[i].dueDate || p.dueDate, paid: !!old[i].paid, value: old[i].paid ? old[i].value : p.value }) : p);
+                af.saldoValue = Math.max(0, AlphaPay.round2(total - sinal));
+                AlphaPay.redistribute(af);
+            } else {
+                af.parcelasMensais = [];
+                if (!af.saldoPaid) af.saldoValue = Math.max(0, AlphaPay.round2(total - sinal));
+            }
+            syncReceived(this, s); this.saveWithFeedback(); this.render();
+        };
+        app.updateArtistParcela = function (i, field, val) {
+            const s = this.getActiveShow(); const p = s && s.artistFinancials && s.artistFinancials.parcelasMensais && s.artistFinancials.parcelasMensais[i];
+            if (!p) return; p[field] = val; this.saveWithFeedback(); this.render();
+        };
+        app.toggleArtistParcelaPaid = function (i, checked) {
+            const s = this.getActiveShow(); const af = s && s.artistFinancials; const p = af && af.parcelasMensais && af.parcelasMensais[i];
+            if (!p) return; p.paid = !!checked; syncReceived(this, s); this.saveWithFeedback(); this.render();
+        };
+        window.toggleAeParcelasMode = function (val) {
+            const b1 = document.getElementById('ae-box-qtd-parcelas'), b2 = document.getElementById('ae-box-first-parcela');
+            [b1, b2].forEach(b => { if (b) b.classList.toggle('hidden', val !== 'sinal_parcelas'); });
+            AlphaPay.modalRecalc();
+        };
+
+        /* ---------- Alimentação (eventos de artista) ---------- */
+        app.updateMeal = function (key, field, val) {
+            const s = this.getActiveShow(); if (!s) return;
+            s.meals = s.meals || {}; s.meals[key] = s.meals[key] || { on: false, place: '', time: '', notes: '' };
+            s.meals[key][field] = val; this.saveWithFeedback();
+        };
+        app.toggleMeal = function (key, checked) { this.updateMeal(key, 'on', !!checked); this.render(); };
+        app.renderArtistFoodTab = function (show) {
+            const m = show.meals || {};
+            const cards = MEALS.map(function (x) {
+                const k = x[0], label = x[1], ph = x[2]; const d = m[k] || { on: false, place: '', time: '', notes: '' };
+                return '<div class="bg-alpha-dark border border-alpha-border rounded-2xl p-5 ' + (d.on ? '' : 'opacity-70') + '">' +
+                    '<label class="flex items-center gap-2.5 cursor-pointer mb-3"><input type="checkbox" ' + (d.on ? 'checked' : '') + ' onchange="app.toggleMeal(\'' + k + '\', this.checked)" class="w-4 h-4 accent-alpha-yellow"><span class="text-base font-extrabold text-alpha-title">' + label + '</span>' +
+                    '<span class="text-[10px] uppercase font-bold ' + (d.on ? 'status-pos' : 'text-alpha-muted') + '">' + (d.on ? 'terá' : 'não terá') + '</span></label>' +
+                    (d.on ? '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">' +
+                        '<div class="sm:col-span-2"><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Onde será</label><input type="text" value="' + String(d.place || '').replace(/"/g, '&quot;') + '" onchange="app.updateMeal(\'' + k + '\', \'place\', this.value)" placeholder="' + ph + '" class="w-full h-9 px-2.5 rounded-lg bg-alpha-card border border-alpha-border text-alpha-title font-semibold"></div>' +
+                        '<div><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Horário</label><input type="time" value="' + (d.time || '') + '" onchange="app.updateMeal(\'' + k + '\', \'time\', this.value)" class="w-full h-9 px-2.5 rounded-lg bg-alpha-card border border-alpha-border text-alpha-title"></div>' +
+                        '<div class="sm:col-span-3"><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Observações</label><input type="text" value="' + String(d.notes || '').replace(/"/g, '&quot;') + '" onchange="app.updateMeal(\'' + k + '\', \'notes\', this.value)" placeholder="Ex: 6 pessoas, sem glúten para 1, nota fiscal no nome da Alpha" class="w-full h-9 px-2.5 rounded-lg bg-alpha-card border border-alpha-border text-alpha-title"></div>' +
+                        '</div>' : '<p class="text-xs text-alpha-muted">Marque a caixinha se essa refeição fizer parte do evento.</p>') +
+                    '</div>';
+            }).join('');
+            return '<div class="space-y-4"><div><span class="text-[10px] font-black uppercase px-2 py-0.5 rounded badge-info">ALIMENTAÇÃO DO EVENTO</span>' +
+                '<h3 class="text-xl font-extrabold text-alpha-title mt-1">🍽️ Como será a alimentação</h3>' +
+                '<p class="text-xs text-alpha-muted">Marque as refeições que o evento terá e informe onde cada uma será servida.</p></div>' +
+                '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">' + cards + '</div></div>';
+        };
+        if (!app.__origHosp) app.__origHosp = app.renderHospitalityTab;
+        app.renderHospitalityTab = function (show) {
+            const p = this.getActiveParent();
+            if (p && p.artistId) return this.renderArtistFoodTab(show);
+            return app.__origHosp.call(this, show);
+        };
+
+        if (full && !app.__pdfFoodWrapped && app.generatePdfReport) {
+            app.__pdfFoodWrapped = true;
+            const origPdf = app.generatePdfReport;
+            app.generatePdfReport = function () {
+                const s = this.getActiveShow(), p = this.getActiveParent();
+                if (p && p.artistId && s) {
+                    const saved = s.hospitalityRooms; const mm = s.meals || {};
+                    const items = MEALS.filter(function (x) { return mm[x[0]] && mm[x[0]].on; }).map(function (x) {
+                        const d = mm[x[0]]; return { type: 'Alimentação / Bebidas', item: x[1].replace(/^\S+\s/, '') + ': ' + (d.place || 'local a definir') + (d.time ? ' às ' + d.time : ''), notes: d.notes || '', ready: true };
+                    });
+                    s.hospitalityRooms = items.length ? [{ id: 'meals', name: 'ALIMENTAÇÃO', items: items }] : [];
+                    try { return origPdf.apply(this, arguments); } finally { s.hospitalityRooms = saved; }
+                }
+                return origPdf.apply(this, arguments);
+            };
+        }
+    }
+
+    function boot() { if (window.app) install(window.app, false); }
+    boot();
+    window.addEventListener('load', function () { setTimeout(function () { if (window.app) { install(window.app, true); } }, 900); });
+})();
 </script>
 </body>
 </html>
