@@ -7545,6 +7545,27 @@ window.addEventListener('load', () => {
 '{{CIDADE}}, {{DATA_HOJE}}.',
 '{{ASSINATURAS}}'
     ].join('\n\n');
+    // ===== Modelo padrão NC MUSIC (eventos religiosos) — contratada: Alpha Produções =====
+    const DEFAULT_NC = [
+'**Contrato de Prestação de Serviços — Ministração Musical**',
+'Por este instrumento particular, de um lado **{{CONTRATANTE_NOME}}**, inscrita sob o **{{CONTRATANTE_DOC}}**, com sede em **{{CONTRATANTE_ENDERECO}}**, Telefone: **{{CONTRATANTE_TELEFONE}}**, doravante denominada **CONTRATANTE**, e, de outro lado, **Alpha Produções**, inscrita no CNPJ sob o nº **60.935.548/0001-55**, com sede na Rua Niraldo David de Freitas, 82, casa 1, Serra Grande, Niterói-RJ, CEP 24.342-637, neste ato representada por seu representante legal **Higor Carlos de Medeiros**, responsável pela agenda e representação da banda **NC Music**, doravante denominada **CONTRATADA**, ajustam entre si a prestação de serviços conforme as cláusulas a seguir:',
+'**CLÁUSULA 1ª – DO OBJETO.** O presente contrato tem como objeto a ministração musical da banda **NC Music** no evento **{{TITULO_EVENTO}}**, de caráter cristão, com repertório exclusivamente gospel/evangélico, cabendo à banda a condução artística e espiritual do seu momento.',
+'**CLÁUSULA 2ª – DATA, LOCAL E DURAÇÃO.** A ministração será realizada no dia **{{DATA_EVENTO}}**, em **{{LOCAL_EVENTO}}**, com início às **{{HORA_INICIO}}**. O tempo da ministração será definido pela CONTRATANTE, de acordo com a programação do evento, podendo ser de até 01h30 (uma hora e trinta minutos). Caso a programação disponha de tempo menor (por exemplo, 40 minutos), a banda se adequará ao tempo disponibilizado, sem qualquer alteração no valor contratado.',
+'**CLÁUSULA 3ª – EQUIPE.** A banda comparecerá com equipe de **06 (seis) a 08 (oito) pessoas**, entre músicos e equipe técnica.',
+'**CLÁUSULA 4ª – OBRIGAÇÕES DA CONTRATANTE.** Caberá à CONTRATANTE, sem custo para a CONTRATADA: **(a)** fornecer sonorização adequada ao local e ao público do evento, além de iluminação; **(b)** disponibilizar camarim exclusivo para a equipe, com água e alimentação antes do evento; **(c)** oferecer jantar à equipe após o evento, em local a combinar entre as partes.',
+'**CLÁUSULA 5ª – LOGÍSTICA.** As despesas de deslocamento da equipe são de responsabilidade da CONTRATANTE: **(a)** para eventos no estado do Rio de Janeiro, transporte em van (ida e volta); **(b)** para eventos em outros estados, passagens aéreas (ida e volta), hospedagem e traslados locais. Os detalhes da logística serão combinados entre as partes antes do evento.',
+'**CLÁUSULA 6ª – VALOR E PAGAMENTO.** Pela prestação dos serviços, a CONTRATANTE pagará à CONTRATADA a quantia de **{{VALOR_TOTAL}}** ({{VALOR_TOTAL_EXTENSO}}), da seguinte forma: **(a)** sinal de **{{VALOR_SINAL}}**, correspondente a {{SINAL_PCT}} do valor total, a ser pago na assinatura deste contrato, para a reserva da data; **(b)** o restante, de **{{VALOR_SALDO}}**, poderá ser pago da forma que a CONTRATANTE preferir: em parcelas avulsas, de valores livres, ao longo do período até o evento, ou em pagamento único, desde que esteja integralmente quitado até o dia do evento. Os valores da logística (cláusula 5ª) não estão incluídos neste total.',
+'**Parágrafo único – Dados para pagamento.** Todos os pagamentos deverão ser feitos via **PIX**, chave **CNPJ 60.935.548/0001-55**, em favor de **60.935.548 HIGOR CARLOS DE MEDEIROS** (Alpha Produções). Após cada pagamento, a CONTRATANTE deverá enviar o comprovante à CONTRATADA.',
+'**CLÁUSULA 7ª – PRAZO DE QUITAÇÃO.** O valor total deverá estar integralmente quitado até o dia do evento. Sempre que desejar, a CONTRATANTE poderá solicitar à CONTRATADA o resumo dos valores já pagos e do saldo restante. Para que tudo transcorra com tranquilidade no dia, pedimos que a quitação seja concluída até a data do evento, não sendo prevista a possibilidade de pagamento posterior.',
+'**CLÁUSULA 8ª – CANCELAMENTO PELA CONTRATANTE.** Com a assinatura deste contrato e o pagamento do sinal, a data fica reservada exclusivamente para a CONTRATANTE. Em caso de cancelamento por parte da CONTRATANTE, **os valores já pagos não serão devolvidos**, uma vez que a CONTRATADA deixa de aceitar outros compromissos para a mesma data.',
+'**CLÁUSULA 9ª – CANCELAMENTO PELA CONTRATADA.** Em caso de cancelamento por parte da CONTRATADA, esta devolverá integralmente à CONTRATANTE todos os valores já recebidos.',
+'**CLÁUSULA 10ª – CASO FORTUITO OU FORÇA MAIOR.** Ocorrendo impedimento por caso fortuito ou força maior (como chuvas fortes, doença ou luto de integrantes, ou outros fatos alheios à vontade das partes), o evento será remarcado em nova data acordada entre as partes, sem multa e com aproveitamento integral dos valores já pagos.',
+'**CLÁUSULA 11ª – USO DE IMAGEM.** A CONTRATANTE autoriza a CONTRATADA e a banda NC Music a captar e utilizar fotos e vídeos da ministração em suas redes sociais e materiais de divulgação, sem fins comerciais diretos e sem qualquer custo.',
+'**CLÁUSULA 12ª – FORO.** Fica eleito o foro da comarca de **Niterói-RJ** para dirimir quaisquer dúvidas oriundas deste contrato. E, por estarem de acordo, as partes assinam o presente instrumento em 02 (duas) vias de igual teor.',
+'{{CIDADE}}, {{DATA_HOJE}}.',
+'{{ASSINATURAS}}'
+    ].join('\n\n');
+    const DEFAULT_NC_DEFAULTS = { duracao: 'até 01h30 (uma hora e trinta minutos), conforme definido pela CONTRATANTE', equipamentos: '', contratado: 'Alpha Produções', contratadoDoc: 'CNPJ 60.935.548/0001-55' };
     const DEFAULT_MOTHE_DEFAULTS = { duracao: '05 (cinco) horas', equipamentos: 'Dj Mothé + 1 Robozão de Led + efeitos especiais. O DJ leva seu CDJ e sua mesa de apoio.', contratado: 'Mothé Produções', contratadoDoc: 'CNPJ 33.780.501/0001-97' };
 
 
@@ -7612,10 +7633,11 @@ window.addEventListener('load', () => {
         const v = soc ? art.contractTemplateSocial : art.contractTemplate;
         if (typeof v === 'string' && v.trim()) return v;
         if (art.id === 'art_dj_mothe') return soc ? DEFAULT_MOTHE.replace('com sede/residência em', 'residente e domiciliado(a) em') : DEFAULT_MOTHE;
+        if (art.id === 'art_nc_music') return DEFAULT_NC;
         return '';
     }
     function getDefaults(art, soc) {
-        const base = Object.assign({}, art && art.id === 'art_dj_mothe' ? DEFAULT_MOTHE_DEFAULTS : {}, (art && art.contractDefaults) || {});
+        const base = Object.assign({}, art && art.id === 'art_dj_mothe' ? DEFAULT_MOTHE_DEFAULTS : (art && art.id === 'art_nc_music' ? DEFAULT_NC_DEFAULTS : {}), (art && art.contractDefaults) || {});
         if (!soc) return base;
         const sd = (art && art.contractDefaultsSocial) || {}, seed = art && art.id === 'art_dj_mothe' ? DEFAULT_MOTHE_DEFAULTS : {};
         return { contratado: base.contratado, contratadoDoc: base.contratadoDoc, duracao: sd.duracao || seed.duracao || '', equipamentos: sd.equipamentos || seed.equipamentos || '' };
@@ -7648,31 +7670,46 @@ window.addEventListener('load', () => {
         const total = Number(af.contractedValue || 0), sinal = Number(af.sinalValue || 0), saldo = Number(af.saldoValue || 0);
         const parcelas = (af.payMode === 'sinal_parcelas' && Array.isArray(af.parcelasMensais)) ? af.parcelasMensais : [];
         const parcTxt = parcelas.map((p, i) => (i + 1) + 'ª parcela de ' + money(p.value) + (p.dueDate ? ' em ' + br(p.dueDate) : '')).join('; ');
+        // Prazo de quitação: DJ Mothé em evento SOCIAL = até 1 dia antes; todos os outros (e Mothé religioso) = até o dia do evento
+        const umDiaAntes = !!(art && art.id === 'art_dj_mothe' && isSocial(parent, show));
+        const ateDia = umDiaAntes ? 'até 01 (um) dia antes do evento' : 'até o dia do evento';
+        const diaAnt = (iso) => { const q = String(iso || '').split('-').map(Number); if (q.length < 3 || !q[0]) return ''; const d = new Date(q[0], q[1] - 1, q[2] - 1); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); };
+        const limiteLv = show.date ? (umDiaAntes ? diaAnt(show.date) + ' (01 dia antes do evento)' : br(show.date) + ', data do evento') : (umDiaAntes ? '01 (um) dia antes do evento' : 'a data do evento');
         let pag;
-        if (parcelas.length) {
+        if (af.parcelasLivres) {
+            const restoLv = Math.max(0, total - sinal);
+            pag = (sinal > 0 ? (af.sinalPaid ? 'já estando pago o sinal de ' + money(sinal) : 'sendo ' + money(sinal) + ' a título de sinal' + (af.sinalDate ? ' até ' + br(af.sinalDate) : '')) + ' e o restante de ' + money(restoLv) : 'sendo o valor de ' + money(restoLv)) + ' pago em parcelas de valores livres, conforme a disponibilidade do CONTRATANTE, devendo estar integralmente quitado até ' + limiteLv + '.';
+        } else if (parcelas.length) {
             pag = (af.sinalPaid ? 'já estando pago o sinal de ' + money(sinal) : 'sendo ' + money(sinal) + ' a título de sinal' + (af.sinalDate ? ' até ' + br(af.sinalDate) : '')) + ' e o restante de ' + money(saldo) + ' dividido em ' + parcelas.length + ' parcela(s): ' + parcTxt + '.';
         } else if (af.payMode === 'avista') {
-            pag = af.saldoPaid ? 'já estando o valor integral pago.' : 'a ser paga integralmente à vista' + (af.saldoDate ? ' até ' + br(af.saldoDate) : ' até o dia do evento') + '.';
+            pag = af.saldoPaid ? 'já estando o valor integral pago.' : 'a ser paga integralmente à vista' + (af.saldoDate ? ' até ' + br(af.saldoDate) : ' ' + ateDia) + '.';
         } else if (sinal > 0 && saldo <= 0) {
             pag = af.sinalPaid ? 'já estando o valor integral pago.' : 'a ser paga integralmente a título de sinal' + (af.sinalDate ? ' até ' + br(af.sinalDate) : '') + '.';
         } else if (sinal > 0) {
-            pag = af.sinalPaid ? 'já estando pago o valor de ' + money(sinal) + ' e o restante de ' + money(saldo) + ' ' + (af.saldoDate ? 'até ' + br(af.saldoDate) : 'até o dia do evento') + '.'
-                : 'sendo ' + money(sinal) + ' a título de sinal' + (af.sinalDate ? ' até ' + br(af.sinalDate) : '') + ' e o restante de ' + money(saldo) + ' ' + (af.saldoDate ? 'até ' + br(af.saldoDate) : 'até o dia do evento') + '.';
-        } else pag = 'a ser paga ' + (af.saldoDate ? 'até ' + br(af.saldoDate) : 'até o dia do evento') + '.';
-        const prazo = parcelas.length
-            ? 'O pagamento deverá ser quitado nas datas acima e integralmente até 01 (um) dia antes do evento, **não sendo aceito em hipótese alguma após a realização do mesmo.**'
-            : 'O pagamento deverá ser quitado até 01 (um) dia antes do evento, **não sendo aceito em hipótese alguma após a realização do mesmo.**';
+            pag = af.sinalPaid ? 'já estando pago o valor de ' + money(sinal) + ' e o restante de ' + money(saldo) + ' ' + (af.saldoDate ? 'até ' + br(af.saldoDate) : ateDia) + '.'
+                : 'sendo ' + money(sinal) + ' a título de sinal' + (af.sinalDate ? ' até ' + br(af.sinalDate) : '') + ' e o restante de ' + money(saldo) + ' ' + (af.saldoDate ? 'até ' + br(af.saldoDate) : ateDia) + '.';
+        } else pag = 'a ser paga ' + (af.saldoDate ? 'até ' + br(af.saldoDate) : ateDia) + '.';
+        const prazoQuando = umDiaAntes ? 'até 01 (um) dia antes do evento' : 'até o dia do evento';
+        const prazo = (parcelas.length && !af.parcelasLivres)
+            ? 'O pagamento deverá ser quitado nas datas acima e integralmente ' + prazoQuando + ', **não sendo aceito em hipótese alguma após a realização do mesmo.**'
+            : 'O pagamento deverá ser quitado ' + prazoQuando + ', **não sendo aceito em hipótese alguma após a realização do mesmo.**';
         const addrTxt = String(show.address || '').toLowerCase(); const cityPart = (show.city && addrTxt.indexOf(String(show.city).toLowerCase()) >= 0) ? '' : [show.city, show.state].filter(Boolean).join(' - ');
         const venueTxt = (show.venue && addrTxt.indexOf(String(show.venue).toLowerCase()) >= 0) ? '' : show.venue;
         const local = [venueTxt, show.address, cityPart].map(s => (s || '').trim()).filter(Boolean).join(', ');
         const sig = '[[SIG]]';
+        // NC Music: sinal padrão de 10% (se não foi informado) e o restante livre até o dia do evento
+        const ncSinal = (art && art.id === 'art_nc_music') ? (sinal > 0 ? sinal : Math.round(total * 10) / 100) : sinal;
+        const ncSaldo = (art && art.id === 'art_nc_music') ? Math.max(0, Math.round((total - ncSinal) * 100) / 100) : saldo;
+        const pctN = total > 0 ? Math.round(ncSinal / total * 1000) / 10 : 0;
+        const SINAL_PCT = pctN === 10 ? '10% (dez por cento)' : (String(pctN).replace('.', ',') + '%');
         return {
+            SINAL_PCT: SINAL_PCT,
             CONTRATANTE_NOME: cd.nome || '', CONTRATANTE_DOC: fmtDoc(cd.doc), CONTRATANTE_ENDERECO: cd.endereco || '',
             CONTRATANTE_TELEFONE: cd.telefone || show.telefoneLocal || '',
             DATA_EVENTO: br(show.date), LOCAL_EVENTO: local, HORA_INICIO: cd.hora || autoHora(show), DURACAO: cd.duracao || df.duracao || '',
             EQUIPAMENTOS: cd.equipamentos || autoEquip(show, df) || df.equipamentos || '',
             VALOR_TOTAL: total ? money(total) : '', VALOR_TOTAL_EXTENSO: total ? reaisExt(total) : '',
-            VALOR_SINAL: sinal ? money(sinal) : '', DATA_SINAL: br(af.sinalDate), VALOR_SALDO: saldo ? money(saldo) : '', DATA_SALDO: br(af.saldoDate),
+            VALOR_SINAL: ncSinal ? money(ncSinal) : '', DATA_SINAL: br(af.sinalDate), VALOR_SALDO: ncSaldo ? money(ncSaldo) : '', DATA_SALDO: br(af.saldoDate),
             PARCELAS: parcTxt, CLAUSULA_PAGAMENTO: total ? pag : '', CLAUSULA_PRAZO: prazo,
             TITULO_EVENTO: parent.title || '', TIPO_EVENTO: parent.eventType || '', HOMENAGEADOS: (show.socialDetails && show.socialDetails.honoreeNames) || '',
             ARTISTA: art ? art.name : '', CIDADE: show.city || '', DATA_HOJE: longDate(new Date()), ASSINATURAS: sig
@@ -7800,7 +7837,7 @@ window.addEventListener('load', () => {
         const rows = []; const sv = Number(af.sinalValue || 0);
         if (af.payMode === 'avista') { rows.push({ key: 'saldo', label: 'Pagamento à vista', value: af.saldoValue, date: af.saldoDate, paid: af.saldoPaid }); return rows; }
         if (sv > 0 || af.sinalPaid) rows.push({ key: 'sinal', label: 'Sinal / reserva', value: sv, date: af.sinalDate, paid: af.sinalPaid });
-        if (af.payMode === 'sinal_parcelas') (af.parcelasMensais || []).forEach((p, i) => rows.push({ key: 'p' + i, label: 'Parcela ' + (i + 1) + '/' + af.parcelasMensais.length, value: p.value, date: p.dueDate, paid: p.paid }));
+        if (af.payMode === 'sinal_parcelas') (af.parcelasMensais || []).forEach((p, i) => rows.push({ key: 'p' + i, label: af.parcelasLivres ? (i + 1) + 'º pagamento' : 'Parcela ' + (i + 1) + '/' + af.parcelasMensais.length, value: p.value, date: p.dueDate, paid: p.paid }));
         else if (Number(af.saldoValue || 0) > 0 || af.saldoPaid) rows.push({ key: 'saldo', label: 'Saldo final', value: af.saldoValue, date: af.saldoDate, paid: af.saldoPaid });
         return rows;
     }
@@ -8987,14 +9024,134 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
 
         const pode = (modo) => { const p = app.perm; if (!p || p.admin) return true; return p.can('artist:' + ART, modo || 'view'); };
 
+        /* ---------- prefeituras: vão direto para o Banco de Leads (atendimento da Jair Produções) ---------- */
+        const emAndamento = new Set();
+        function separaCidade(txt) {
+            let city = String(txt || '').trim(), state = '';
+            const m = /^(.*?)[\s,\-\/]+([A-Za-z]{2})$/.exec(city); if (m) { city = m[1].trim(); state = m[2].toUpperCase(); }
+            return { city: city, state: state };
+        }
+        async function prefeiturasParaLeads(lista) {
+            if (!lista.length || !pode('edit') || !window.firebaseDb) return;
+            for (const p of lista) {
+                if (emAndamento.has(p.id)) continue; emAndamento.add(p.id);
+                try {
+                    const c = p.campos || {}; const loc = separaCidade(p.cidade);
+                    const lead = {
+                        id: 'cli_site_' + p.id, category: 'Prefeitura', artistId: ART, artistRef: app.leadArtistName ? app.leadArtistName(ART) : 'DJ MOTHÉ',
+                        org: c.prefeitura || p.nome || 'Prefeitura', contact: (p.nome || '') + (c.cargo ? ' (' + c.cargo + ')' : ''), whatsapp: p.whatsapp || '',
+                        city: loc.city, state: loc.state,
+                        notes: '🏛️ Pedido do site em ' + quando(p.criadoEm) + ' • Atendimento: Jair Produções' +
+                            (c.evento ? '\nEvento: ' + c.evento : '') + (p.dataEvento ? '\nData: ' + dataBR(p.dataEvento) + (p.horario ? ' às ' + p.horario : '') : '') +
+                            (c.publico ? '\nPúblico estimado: ' + c.publico : '') + '\nOrigem: ' + (p.origem || 'Link direto')
+                    };
+                    app.artistClients = app.artistClients || [];
+                    if (!app.artistClients.some(x => x.id === lead.id)) app.artistClients.unshift(lead);
+                    await setDoc(doc(window.firebaseDb, 'alpha_artist_clients_v42', lead.id), lead);
+                    await deleteDoc(doc(window.firebaseDb, COL, p.id));
+                    try { app.saveLocalOnly && app.saveLocalOnly(); } catch (e) {}
+                } catch (e) { emAndamento.delete(p.id); console.warn('prefeitura -> lead', e); }
+            }
+            try { if (app.view === 'leads' || (app.view === 'artist_hub' && app.artistSubView === 'clients')) app.render(); } catch (e) {}
+        }
+
+        /* ---------- criar evento a partir do pedido ---------- */
+        const TIPO_EVENTO = { 'Casamento': 'Casamento', 'XV anos': 'XV Anos', 'Aniversário': 'Aniversário', 'Formatura': 'Outros', 'Culto': 'Evento em Igreja', 'Conferência': 'Evento em Igreja', 'Acampamento': 'Acampamentos' };
+        const semAcento = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+        let pedidoDoModal = null;
+        function setVal(id, v, evento) {
+            const e = document.getElementById(id); if (!e || v === undefined || v === null || v === '') return;
+            e.value = v; try { e.dispatchEvent(new Event(evento || 'input', { bubbles: true })); } catch (x) {}
+        }
+        function marcaFaltando() {
+            const m = document.getElementById('artist-event-modal'); if (!m) return;
+            const ids = ['ae-title', 'ae-date', 'ae-uf', 'ae-city', 'ae-venue', 'ae-address', 'ae-contact', 'ae-whatsapp', 'ae-ct-nome', 'ae-ct-doc', 'ae-ct-end', 'ae-ct-hora', 'ae-contracted-val', 'ae-sinal-val', 'ae-sinal-date'];
+            const soc = ['Casamento', 'XV Anos', 'Aniversário'].indexOf((document.getElementById('ae-type') || {}).value) !== -1;
+            if (soc) ids.push('ae-honoree');
+            let n = 0;
+            ids.forEach(id => {
+                const e = document.getElementById(id); if (!e) return;
+                const vazio = !String(e.value || '').trim();
+                e.style.boxShadow = vazio ? '0 0 0 2px #E0B25A' : '';
+                if (vazio) n++;
+                if (!e.__pedMark) { e.__pedMark = true; e.addEventListener('input', () => { if (String(e.value || '').trim()) e.style.boxShadow = ''; }); e.addEventListener('change', () => { if (String(e.value || '').trim()) e.style.boxShadow = ''; }); }
+            });
+            return n;
+        }
+        app.pedCriarEvento = async function (id) {
+            if (!pode('edit')) return;
+            const p = (this.sitePedidos || []).find(x => x.id === id); if (!p) return;
+            const c = p.campos || {};
+            pedidoDoModal = p.id;
+            this.activeArtistId = ART;
+            this.openArtistEventModal(ART);
+            await new Promise(r => setTimeout(r, 350));
+            const tipo = TIPO_EVENTO[c.tipo] || (p.tipoEvento === 'social' ? 'Outros' : 'Evento em Igreja');
+            setVal('ae-type', tipo, 'change');
+            try { this.toggleArtistSocialFields(tipo); } catch (e) {}
+            const titulo = p.tipoEvento === 'social' ? (c.tipo || 'Festa') + ' — ' + (p.nome || '') : (c.tipo || 'Evento') + ' — ' + (c.organizacao || p.nome || '');
+            setVal('ae-title', titulo);
+            setVal('ae-date', p.dataEvento, 'change');
+            setVal('ae-venue', p.tipoEvento === 'social' ? c.local : (c.organizacao || ''), 'change');
+            setVal('ae-contact', p.nome);
+            setVal('ae-whatsapp', p.whatsapp);
+            setVal('ae-ct-hora', p.horario, 'change');
+            setVal('ae-ct-nome', p.tipoEvento === 'social' ? p.nome : c.organizacao);
+            if (p.tipoEvento === 'social' && p.total) { setVal('ae-contracted-val', String(p.total)); try { this.autoCalcModalCommission(); } catch (e) {} try { window.AlphaPay && AlphaPay.modalRecalc(); } catch (e) {} }
+            if (p.tipoEvento === 'religioso') setVal('ae-fee-type', 'Cachê', 'change');
+            // cidade / estado
+            const loc = separaCidade(p.cidade);
+            const ufSel = document.getElementById('ae-uf');
+            if (ufSel && loc.state && Array.from(ufSel.options).some(o => o.value === loc.state)) {
+                ufSel.value = loc.state;
+                try { await this.loadCitiesForSelect('ae-uf', 'ae-city', loc.city); } catch (e) {}
+                const cs = document.getElementById('ae-city');
+                if (cs) { const alvo = semAcento(loc.city); const op = Array.from(cs.options).find(o => semAcento(o.value) === alvo); if (op) cs.value = op.value; }
+            }
+            // aviso no topo do formulário
+            const m = document.getElementById('artist-event-modal');
+            const form = m && m.querySelector('form');
+            if (form) {
+                let av = document.getElementById('ped-aviso');
+                if (!av) { av = document.createElement('div'); av.id = 'ped-aviso'; form.insertBefore(av, form.firstChild); }
+                const falta = marcaFaltando();
+                av.className = 'p-3 rounded-xl text-xs font-bold';
+                av.style.cssText = 'background:rgba(224,178,90,.12);border:1px solid rgba(224,178,90,.5);color:#E0B25A';
+                av.innerHTML = '🌐 Dados trazidos do pedido do site de <b>' + esc(p.nome || '') + '</b>.' +
+                    (falta ? ' Os campos com <u>borda amarela</u> (' + falta + ') ainda faltam para o contrato. Peça ao cliente pelo WhatsApp e preencha antes de salvar.' : ' Confira e salve.') +
+                    (p.tipoEvento === 'social' ? '<br><span style="font-weight:600">Contrato social: nome completo, CPF e endereço residencial do representante legal.</span>' : '<br><span style="font-weight:600">Contrato religioso: razão social, CNPJ e endereço da sede da igreja/instituição.</span>');
+            }
+        };
+        function ligaSalvarEvento() {
+            if (app.__pedSaveHook || !app.handleSaveArtistEvent) return; app.__pedSaveHook = true;
+            const o = app.handleSaveArtistEvent;
+            app.handleSaveArtistEvent = async function () {
+                const antes = new Set((this.data || []).map(d => d.id));
+                const pid = pedidoDoModal;
+                const r = await o.apply(this, arguments);
+                try {
+                    const av = document.getElementById('ped-aviso'); 
+                    if (pid) {
+                        const novo = (this.data || []).find(d => !antes.has(d.id) && d.artistId === ART);
+                        if (novo) { pedidoDoModal = null; if (av) av.remove(); await grava(pid, { eventoId: novo.id, status: 'fechado' }); this.render(); }
+                    }
+                } catch (e) { console.warn(e); }
+                return r;
+            };
+            const c0 = app.closeArtistEventModal;
+            if (c0) app.closeArtistEventModal = function () { pedidoDoModal = null; const av = document.getElementById('ped-aviso'); if (av) av.remove(); document.querySelectorAll('#artist-event-modal [style*="box-shadow"]').forEach(e => { e.style.boxShadow = ''; }); return c0.apply(this, arguments); };
+        }
+        ligaSalvarEvento();
+
         /* ---------- tempo real ---------- */
         let ligado = false;
         function ligar() {
             if (ligado || !window.firebaseDb) return; ligado = true;
             onSnapshot(collection(window.firebaseDb, COL), (snap) => {
                 const l = []; snap.forEach(d => l.push(Object.assign({}, d.data(), { id: d.id })));
+                try { prefeiturasParaLeads(l.filter(x => x.tipoEvento === 'prefeitura')); } catch (e) { console.error(e); }
                 l.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
-                app.sitePedidos = l;
+                app.sitePedidos = l.filter(x => x.tipoEvento !== 'prefeitura');
                 pintaMenu();
                 if (app.view === 'site_pedidos') app.render();
             }, () => { ligado = false; setTimeout(ligar, 30000); });
@@ -9040,6 +9197,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
             const sel = '<select ' + (edita ? '' : 'disabled ') + 'onchange="app.pedSetStatus(\'' + esc(p.id) + '\',this.value)" class="bg-alpha-dark border border-alpha-border rounded-lg px-2 py-1.5 text-xs font-bold text-alpha-title">' +
                 STATUS.map(s => '<option value="' + s[0] + '"' + ((p.status || 'novo') === s[0] ? ' selected' : '') + '>' + s[1] + '</option>').join('') + '</select>';
             const noBanco = p.leadId && (app.artistClients || []).some(x => x.id === p.leadId);
+            const temEvento = p.eventoId && (app.data || []).some(d => d.id === p.eventoId);
             return '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-5 flex flex-col">' +
                 '<div class="flex flex-wrap items-center gap-2 text-[10px] mb-3">' +
                     '<span class="' + t[2] + ' px-2 py-0.5 rounded font-bold">' + t[0] + ' ' + esc(t[1]) + '</span>' +
@@ -9055,6 +9213,8 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                     (c.cargo ? '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">Cargo</span><b class="text-alpha-title">' + esc(c.cargo) + '</b></div>' : '') +
                 '</div>' + pacote +
                 '<details class="mt-3 text-xs"><summary class="cursor-pointer text-alpha-muted font-bold">Ver mensagem completa</summary><pre class="whitespace-pre-wrap font-sans text-alpha-text bg-alpha-dark border border-alpha-border rounded-xl p-3 mt-2">' + esc(p.resumo || '') + '</pre></details>' +
+                (temEvento ? '<div class="mt-3 p-2.5 rounded-xl text-xs font-bold status-pos bg-alpha-dark border border-alpha-border">✅ Evento criado na agenda do DJ MOTHÉ</div>'
+                    : (edita && ['sinal', 'fechado'].indexOf(p.status) !== -1 ? '<button onclick="app.pedCriarEvento(\'' + esc(p.id) + '\')" class="mt-3 w-full btn-primary-alpha px-4 py-2.5 rounded-xl text-sm font-extrabold">📅 Criar evento com estes dados</button>' : '')) +
                 '<div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-alpha-border">' + sel +
                     (wa ? '<a href="' + wa + '" target="_blank" class="btn-secondary-alpha status-pos px-3 py-1.5 rounded-lg text-xs font-bold">💬 ' + esc(p.whatsapp) + '</a>' : '') +
                     (noBanco ? '<span class="text-[11px] font-bold status-pos px-2">✓ No Banco de Leads</span>'
@@ -9083,7 +9243,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                 '<div><span class="text-xs font-black uppercase text-alpha-gray block">PÁGINA DE PROPOSTA • DJ MOTHÉ</span>' +
                 '<h3 class="text-2xl font-extrabold text-alpha-title">🌐 Pedidos do Site (' + all.length + ')</h3>' +
                 '<p class="text-xs text-alpha-muted mt-1">Cada formulário enviado pela página do Mothé aparece aqui na hora. Atualize o status conforme a conversa no WhatsApp e salve no Banco de Leads.</p></div></div></div>' +
-                '<div class="flex flex-wrap gap-2 mb-3">' + seg('tipo', '', 'Todos', all.length) + seg('tipo', 'religioso', '⛪ Religiosos', conta(p => p.tipoEvento === 'religioso')) + seg('tipo', 'social', '💍 Sociais', conta(p => p.tipoEvento === 'social')) + seg('tipo', 'prefeitura', '🏛️ Prefeituras', conta(p => p.tipoEvento === 'prefeitura')) + '</div>' +
+                '<div class="flex flex-wrap gap-2 mb-3">' + seg('tipo', '', 'Todos', all.length) + seg('tipo', 'religioso', '⛪ Religiosos', conta(p => p.tipoEvento === 'religioso')) + seg('tipo', 'social', '💍 Sociais', conta(p => p.tipoEvento === 'social')) + '</div>' +
                 '<div class="flex flex-wrap gap-2 mb-5">' + seg('status', 'ativos', '🔥 Em aberto') + STATUS.map(s => seg('status', s[0], s[1], conta(p => (p.status || 'novo') === s[0]))).join('') + seg('status', '', 'Todos') + '</div>' +
                 (lista.length ? '<div class="grid grid-cols-1 xl:grid-cols-2 gap-4">' + lista.map(p => card(p, edita)).join('') + '</div>'
                     : '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-10 text-center text-alpha-muted text-sm">Nenhum pedido aqui ainda.</div>');
@@ -9156,5 +9316,234 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
 })();
 </script>
 
+<script id="alpha-pagamentos-livres">
+/* ===== Sinal + Pagamentos livres (valores variáveis) — vale para todos os artistas =====
+   Em vez de dividir o saldo em parcelas iguais, cada pagamento é registrado quando o cliente paga:
+   valor + data, e o sistema mostra quanto já entrou e quanto falta.
+   Por dentro usa o mesmo lugar das parcelas (payMode 'sinal_parcelas' + parcelasLivres = true),
+   assim o "recebido", os alertas, os comprovantes e os relatórios continuam funcionando. */
+(function () {
+    const brl = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+    const hoje = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const dBR = (d) => { if (!d) return '-'; const p = String(d).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : d; };
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const livre = (af) => !!(af && af.payMode === 'sinal_parcelas' && af.parcelasLivres);
+
+    function contas(af) {
+        const total = Number(af.contractedValue || 0);
+        const sinal = Number(af.sinalValue || 0);
+        const lista = af.parcelasMensais || [];
+        const pagos = lista.filter(p => p.paid).reduce((a, p) => a + Number(p.value || 0), 0);
+        const previstos = lista.filter(p => !p.paid).reduce((a, p) => a + Number(p.value || 0), 0);
+        const recebido = r2((af.sinalPaid ? sinal : 0) + pagos);
+        const falta = Math.max(0, r2(total - recebido));
+        const semCombinar = Math.max(0, r2(total - sinal - pagos - previstos));
+        return { total, sinal, pagos: r2(pagos), recebido, falta, semCombinar, pct: total > 0 ? Math.min(100, Math.round(recebido / total * 100)) : 0 };
+    }
+
+    function install(app) {
+        if (!window.AlphaPay || !app.renderPayControls || app.__livreOn) return false;
+        app.__livreOn = true;
+        const P = window.AlphaPay;
+
+        // 1) nunca redistribuir valores no modo livre
+        const red0 = P.redistribute.bind(P);
+        P.redistribute = function (af) { if (livre(af)) return; return red0(af); };
+
+        // 2) troca de forma de pagamento (dentro do evento)
+        const setMode0 = app.setArtistPayMode;
+        app.setArtistPayMode = function (mode, qty) {
+            const s = this.getActiveShow(); if (!s) return;
+            const af = s.artistFinancials || (s.artistFinancials = {});
+            if (mode === 'sinal_livre') {
+                const tinhaParcelasIguais = af.payMode === 'sinal_parcelas' && !af.parcelasLivres;
+                af.payMode = 'sinal_parcelas'; af.parcelasLivres = true; af.parcelasQtd = 0;
+                // mantém só o que já foi pago (o resto vira "a combinar")
+                af.parcelasMensais = tinhaParcelasIguais ? (af.parcelasMensais || []).filter(p => p.paid) : (af.parcelasMensais || []).filter(p => p.paid || p.livre);
+                af.parcelasMensais.forEach(p => { p.livre = true; });
+                af.saldoValue = Math.max(0, r2(Number(af.contractedValue || 0) - Number(af.sinalValue || 0))); af.saldoDate = '';
+                sync(this, s); this.saveWithFeedback(); this.render(); return;
+            }
+            if (af.parcelasLivres) { af.parcelasLivres = false; if (mode === 'sinal_parcelas') af.parcelasMensais = []; }
+            return setMode0.apply(this, arguments);
+        };
+
+        // 3) controles de forma de pagamento
+        const ctrl0 = app.renderPayControls;
+        app.renderPayControls = function (af) {
+            let h = ctrl0.apply(this, arguments);
+            const opt = '<option value="sinal_livre" ' + (livre(af) ? 'selected' : '') + '>🧾 Sinal + Pagamentos livres (valores variáveis)</option>';
+            h = h.replace('<option value="avista"', opt + '<option value="avista"');
+            if (livre(af)) {
+                // tira a marcação da opção "parcelas iguais" e os campos de quantidade
+                h = h.replace('<option value="sinal_parcelas" selected>', '<option value="sinal_parcelas">');
+                h = h.replace(/<div><label[^>]*>Qtd\. de parcelas[\s\S]*<\/p>/, '<p class="w-full text-[11px] text-alpha-muted">Cada vez que o cliente pagar, clique em <strong>➕ Registrar pagamento</strong> e informe o valor e a data. Não precisa definir quantidade de parcelas nem valores iguais.</p>');
+            }
+            return h;
+        };
+
+        // 4) cartão dos pagamentos livres
+        const card0 = app.renderArtistParcelasCard;
+        app.renderArtistParcelasCard = function (af) {
+            if (!livre(af)) return card0.apply(this, arguments);
+            const c = contas(af); const lista = af.parcelasMensais || [];
+            const linhas = lista.map((p, i) => {
+                const st = p.paid ? { cls: 'badge-pos', label: '✅ Recebido' } : this.checkPaymentAlertState(p.dueDate, false);
+                return '<div class="grid grid-cols-12 gap-2 items-center bg-alpha-dark border border-alpha-border rounded-lg p-2.5">' +
+                    '<label class="col-span-12 sm:col-span-3 flex items-center gap-2 cursor-pointer"><input type="checkbox" ' + (p.paid ? 'checked' : '') + ' onchange="app.toggleArtistParcelaPaid(' + i + ', this.checked)" class="w-4 h-4 accent-alpha-yellow"><strong class="text-alpha-title">' + (i + 1) + 'º pagamento</strong></label>' +
+                    '<input type="number" step="0.01" value="' + (p.value || '') + '" onchange="app.updateArtistParcela(' + i + ', \'value\', Number(this.value))" class="col-span-6 sm:col-span-2 h-9 bg-alpha-card border border-alpha-border rounded-lg px-2.5 text-alpha-title font-bold w-full">' +
+                    '<input type="date" value="' + (p.dueDate || '') + '" onchange="app.updateArtistParcela(' + i + ', \'dueDate\', this.value)" class="col-span-6 sm:col-span-2 h-9 bg-alpha-card border border-alpha-border rounded-lg px-2.5 text-alpha-title w-full">' +
+                    '<input type="text" value="' + esc(p.note || '') + '" placeholder="Obs. (ex: Pix)" onchange="app.updateArtistParcela(' + i + ', \'note\', this.value)" class="col-span-8 sm:col-span-3 h-9 bg-alpha-card border border-alpha-border rounded-lg px-2.5 text-alpha-text w-full">' +
+                    '<span class="col-span-3 sm:col-span-1 px-1.5 py-1 rounded text-[10px] text-center ' + st.cls + '">' + (p.paid ? '✅' : st.label) + '</span>' +
+                    '<button onclick="app.removeLivrePagamento(' + i + ')" title="Excluir" class="col-span-1 text-alpha-muted hover:text-alpha-title text-lg font-bold">&times;</button></div>';
+            }).join('');
+            const barra = '<div class="w-full h-2.5 rounded-full bg-alpha-dark border border-alpha-border overflow-hidden"><div style="width:' + c.pct + '%;height:100%;background:#6FBF8E"></div></div>';
+            return '<div class="md:col-span-2 bg-alpha-card border border-alpha-border rounded-xl p-4">' +
+                '<div class="flex flex-wrap items-center justify-between gap-2 mb-3"><span class="font-extrabold text-alpha-title uppercase">🧾 Pagamentos do cliente (valores livres)</span>' +
+                '<span class="text-[11px] text-alpha-muted">' + c.pct + '% recebido</span></div>' +
+                '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">' +
+                    '<div class="bg-alpha-dark border border-alpha-border rounded-lg p-2.5"><span class="block text-[10px] uppercase font-bold text-alpha-muted">Valor do evento</span><b class="text-alpha-title">' + brl(c.total) + '</b></div>' +
+                    '<div class="bg-alpha-dark border border-alpha-border rounded-lg p-2.5"><span class="block text-[10px] uppercase font-bold text-alpha-muted">Sinal</span><b class="text-alpha-title">' + brl(c.sinal) + '</b> <span class="text-[10px] ' + (af.sinalPaid ? 'status-pos' : 'status-warn') + '">' + (af.sinalPaid ? 'pago' : 'a receber') + '</span></div>' +
+                    '<div class="bg-alpha-dark border border-alpha-border rounded-lg p-2.5"><span class="block text-[10px] uppercase font-bold text-alpha-muted">Já recebido</span><b class="status-pos">' + brl(c.recebido) + '</b></div>' +
+                    '<div class="bg-alpha-dark border border-alpha-border rounded-lg p-2.5"><span class="block text-[10px] uppercase font-bold text-alpha-muted">Falta receber</span><b class="' + (c.falta > 0 ? 'status-neg' : 'status-pos') + '">' + (c.falta > 0 ? brl(c.falta) : '✅ Quitado') + '</b></div>' +
+                '</div>' + barra +
+                '<div class="space-y-2 text-xs mt-4">' + (linhas || '<p class="text-alpha-muted">Nenhum pagamento registrado depois do sinal ainda.</p>') + '</div>' +
+                (c.falta > 0 ? '<div class="flex flex-wrap items-end gap-2 mt-4 pt-4 border-t border-alpha-border text-xs">' +
+                    '<div><label class="text-[10px] uppercase font-bold status-pos block mb-1">Valor pago (R$)</label><input type="number" step="0.01" id="lv-valor" placeholder="Ex: 600" class="w-32 h-9 bg-alpha-dark border border-alpha-border rounded-lg px-3 text-alpha-title font-bold"></div>' +
+                    '<div><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Data</label><input type="date" id="lv-data" value="' + hoje() + '" class="h-9 bg-alpha-dark border border-alpha-border rounded-lg px-3 text-alpha-title"></div>' +
+                    '<div class="flex-1 min-w-[140px]"><label class="text-[10px] uppercase font-bold text-alpha-muted block mb-1">Obs. (opcional)</label><input type="text" id="lv-obs" placeholder="Ex: Pix / dinheiro" class="w-full h-9 bg-alpha-dark border border-alpha-border rounded-lg px-3 text-alpha-title"></div>' +
+                    '<button onclick="app.addLivrePagamento(true)" class="btn-primary-alpha h-9 px-4 rounded-lg text-xs font-extrabold">➕ Registrar pagamento</button>' +
+                    '<button onclick="app.addLivrePagamento(false)" title="Combinou uma data mas ainda não pagou" class="btn-secondary-alpha h-9 px-3 rounded-lg text-xs">🗓️ Agendar (ainda não pago)</button>' +
+                    '<button onclick="app.fillLivreRestante()" class="btn-secondary-alpha h-9 px-3 rounded-lg text-xs">Usar o que falta (' + brl(c.falta) + ')</button></div>' : '') +
+                '</div>';
+        };
+
+        function sync(app, s) {
+            const af = s.artistFinancials || {};
+            const it = s.budget && s.budget.receitas && s.budget.receitas.grupos && s.budget.receitas.grupos[1] && s.budget.receitas.grupos[1].itens && s.budget.receitas.grupos[1].itens[0];
+            if (it) { it.unitario = Number(af.contractedValue || 0); it.recebido = P.received(af); }
+        }
+        app.addLivrePagamento = function (pago) {
+            const s = this.getActiveShow(); const af = s && s.artistFinancials; if (!livre(af)) return;
+            const v = r2(document.getElementById('lv-valor')?.value || 0);
+            if (!(v > 0)) { alert('Informe o valor que o cliente pagou.'); return; }
+            const c = contas(af);
+            if (v > c.falta + 0.009 && !confirm('Esse valor (' + brl(v) + ') é maior do que falta receber (' + brl(c.falta) + '). Registrar mesmo assim?')) return;
+            af.parcelasMensais = af.parcelasMensais || [];
+            af.parcelasMensais.push({ value: v, dueDate: document.getElementById('lv-data')?.value || hoje(), paid: !!pago, livre: true, note: (document.getElementById('lv-obs')?.value || '').trim() });
+            af.parcelasMensais.sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+            sync(this, s); this.saveWithFeedback(); this.render();
+        };
+        app.fillLivreRestante = function () {
+            const s = this.getActiveShow(); const af = s && s.artistFinancials; if (!livre(af)) return;
+            const el = document.getElementById('lv-valor'); if (el) { el.value = contas(af).falta.toFixed(2); el.focus(); }
+        };
+        app.removeLivrePagamento = function (i) {
+            const s = this.getActiveShow(); const af = s && s.artistFinancials; if (!livre(af) || !af.parcelasMensais[i]) return;
+            if (!confirm('Excluir o ' + (i + 1) + 'º pagamento de ' + brl(af.parcelasMensais[i].value) + '?')) return;
+            af.parcelasMensais.splice(i, 1); sync(this, s); this.saveWithFeedback(); this.render();
+        };
+
+        // 5) resumo no card do evento (agenda)
+        const saldoCell0 = app.alphaSaldoCell;
+        if (saldoCell0) app.alphaSaldoCell = function (af, saldoAlert) {
+            if (!livre(af)) return saldoCell0.apply(this, arguments);
+            const c = contas(af); const n = (af.parcelasMensais || []).filter(p => p.paid).length;
+            return '<span>Pagamentos livres: <strong>' + n + ' recebido(s)</strong> • falta ' + brl(c.falta) + '</span>' +
+                '<span class="px-1.5 py-0.5 rounded text-[10px] ' + (c.falta > 0 ? 'badge-warn' : 'badge-pos') + '">' + (c.falta > 0 ? c.pct + '% pago' : '✅ Quitado') + '</span>';
+        };
+
+        // 6) cadastro de novo evento: nova opção no seletor
+        function addModalOption() {
+            const sel = document.getElementById('ae-pay-mode'); if (!sel || sel.querySelector('option[value="sinal_livre"]')) return;
+            const o = document.createElement('option'); o.value = 'sinal_livre'; o.textContent = '🧾 Sinal + Pagamentos livres (valores variáveis)';
+            const av = sel.querySelector('option[value="avista"]'); sel.insertBefore(o, av || null);
+        }
+        const mc0 = P.modalRecalc.bind(P);
+        P.modalRecalc = function () {
+            const sel = document.getElementById('ae-pay-mode'); const isLv = sel && sel.value === 'sinal_livre';
+            if (!isLv) return mc0();
+            if (sel) sel.value = 'sinal_saldo'; mc0(); if (sel) sel.value = 'sinal_livre';
+            const g = (id) => document.getElementById(id);
+            const box = g('ae-modal-parcelas-box'); if (box) box.classList.add('hidden');
+            const dateBox = g('ae-saldo-date') && g('ae-saldo-date').parentElement; if (dateBox) dateBox.style.display = 'none';
+            const sEl = g('ae-saldo-val'); const lab = sEl && sEl.parentElement && sEl.parentElement.querySelector('label');
+            if (lab) lab.textContent = 'Restante (pago aos poucos)';
+            const pv = g('ae-parcelas-preview'); if (pv) pv.textContent = '';
+        };
+        const om0 = P.onModeChange.bind(P);
+        P.onModeChange = function (mode) { if (mode === 'sinal_livre') { const b = document.getElementById('ae-modal-parcelas-box'); if (b) b.classList.add('hidden'); return this.modalRecalc(); } return om0(mode); };
+        if (app.openArtistEventModal && !app.__livreOpen) {
+            app.__livreOpen = true;
+            const o0 = app.openArtistEventModal;
+            app.openArtistEventModal = function () { const r = o0.apply(this, arguments); setTimeout(addModalOption, 0); addModalOption(); return r; };
+        }
+        if (app.handleSaveArtistEvent && !app.__livreSave) {
+            app.__livreSave = true;
+            const s0 = app.handleSaveArtistEvent;
+            app.handleSaveArtistEvent = async function () {
+                const sel = document.getElementById('ae-pay-mode'); const isLv = sel && sel.value === 'sinal_livre';
+                const antes = new Set((this.data || []).map(d => d.id));
+                if (isLv && sel) sel.value = 'sinal_saldo';
+                let r;
+                try { r = await s0.apply(this, arguments); }
+                finally {
+                    if (isLv) {
+                        const novo = (this.data || []).find(d => !antes.has(d.id));
+                        const sh = novo && (novo.kind === 'single' ? novo.show : (novo.shows || [])[0]);
+                        const af = sh && sh.artistFinancials;
+                        if (af) {
+                            af.payMode = 'sinal_parcelas'; af.parcelasLivres = true; af.parcelasQtd = 0; af.parcelasMensais = [];
+                            af.saldoValue = Math.max(0, r2(Number(af.contractedValue || 0) - Number(af.sinalValue || 0))); af.saldoDate = ''; af.saldoPaid = false;
+                            sync(this, sh); this.saveWithFeedback(); this.render();
+                        }
+                    }
+                }
+                return r;
+            };
+        }
+        // valor do evento mudou: o "falta receber" se ajusta sozinho (nada de redistribuir)
+        return true;
+    }
+
+    const t = setInterval(() => { if (window.app && window.AlphaPay && window.app.renderPayControls && window.app.handleSaveArtistEvent) { clearInterval(t); setTimeout(() => { try { if (install(window.app)) window.app.render(); } catch (e) { console.error(e); } }, 2500); } }, 900);
+})();
+</script>
+
+
+<script id="alpha-nc-sinal10">
+/* NC Music: no cadastro de evento, o sinal já vem como 10% do valor e a forma de pagamento como "Pagamentos livres" (dá para trocar na mão) */
+(function () {
+    function install() {
+        const app = window.app; if (!app || !app.openArtistEventModal || app.__ncSinal10) return false;
+        app.__ncSinal10 = true;
+        let ehNC = false;
+        const o0 = app.openArtistEventModal;
+        app.openArtistEventModal = function (artistId) {
+            const r = o0.apply(this, arguments);
+            ehNC = (artistId || this.activeArtistId) === 'art_nc_music';
+            const sv = document.getElementById('ae-sinal-val'); if (sv) sv.dataset.manual = '';
+            if (ehNC) setTimeout(() => {
+                const pm = document.getElementById('ae-pay-mode');
+                if (pm && pm.querySelector('option[value="sinal_livre"]')) { pm.value = 'sinal_livre'; try { window.AlphaPay.onModeChange('sinal_livre'); } catch (e) {} }
+            }, 50);
+            return r;
+        };
+        document.addEventListener('input', (e) => {
+            if (!ehNC) return;
+            const sv = document.getElementById('ae-sinal-val');
+            if (e.target === sv) { sv.dataset.manual = '1'; return; }
+            if (e.target && e.target.id === 'ae-contracted-val' && sv && sv.dataset.manual !== '1') {
+                const v = Number(e.target.value || 0);
+                sv.value = v > 0 ? (Math.round(v * 10) / 100).toFixed(2) : '';
+                try { window.AlphaPay.modalRecalc(); } catch (x) {}
+            }
+        }, true);
+        return true;
+    }
+    const t = setInterval(() => { if (window.app && window.AlphaPay && window.app.__livreOn) { clearInterval(t); install(); } }, 1000);
+})();
+</script>
 </body>
 </html>
