@@ -6820,7 +6820,7 @@ window.addEventListener('load', () => {
         }
 
         /* ---------- Painel de diagnóstico ---------- */
-        const RULES = "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    function hasMail() { return request.auth != null && request.auth.token.email != null; }\n    function mail() { return request.auth.token.email.lower(); }\n    function teamRef() { return /databases/$(database)/documents/alpha_team_v1/$(mail()); }\n    function isOwner() { return hasMail() && mail() == 'alphaproducoes22@gmail.com'; }\n    function inTeam() { return hasMail() && exists(teamRef()) && get(teamRef()).data.get('active', true) != false; }\n    function isAdmin() { return isOwner() || (inTeam() && get(teamRef()).data.get('role', 'user') == 'admin'); }\n    function member() { return isOwner() || inTeam(); }\n    function canEdit(scope) { return isAdmin() || (inTeam() && scope in get(teamRef()).data.get('scopesEdit', [])); }\n    function anyEdit() { return isAdmin() || (inTeam() && get(teamRef()).data.get('scopesEdit', []).size() > 0); }\n    function evScope(d) { return d.get('artistId', '') != '' ? 'artist:' + d.artistId : (d.get('kind', '') == 'tour' ? 'tours' : 'events'); }\n    function leadScope(d) { return d.get('artistId', '') != '' ? 'artist:' + d.artistId : 'leads-sem-artista'; }\n\n    match /alpha_team_v1/{teamId} {\n      allow read: if member() || (hasMail() && mail() == teamId);\n      allow write: if isAdmin();\n    }\n    match /alpha_productions_v42/{id} {\n      allow read: if member();\n      allow create: if canEdit(evScope(request.resource.data));\n      allow update: if canEdit(evScope(resource.data)) && canEdit(evScope(request.resource.data));\n      allow delete: if canEdit(evScope(resource.data));\n    }\n    match /alpha_artists_roster_v42/{id} {\n      allow read: if member();\n      allow create, delete: if isAdmin();\n      allow update: if canEdit('artist:' + id);\n    }\n    match /alpha_artist_clients_v42/{id} {\n      allow read: if member();\n      allow create: if canEdit(leadScope(request.resource.data));\n      allow update: if canEdit(leadScope(resource.data)) && canEdit(leadScope(request.resource.data));\n      allow delete: if canEdit(leadScope(resource.data));\n    }\n    match /alpha_suppliers_v42/{id} { allow read: if member(); allow write: if canEdit('cadastros'); }\n    match /alpha_sponsors_v42/{id} { allow read: if member(); allow write: if canEdit('cadastros'); }\n    match /alpha_road_crew_v42/{id} { allow read: if member(); allow write: if anyEdit(); }\n    match /alpha_office_collaborators_v42/{id} { allow read, write: if member(); }\n    match /alpha_files_v1/{id} { allow read, write: if member(); }\n    match /alpha_diag_v1/{id} { allow read, write: if member(); }\n    match /alpha_site_pedidos_v1/{id} {\n      allow read: if member();\n      allow create: if request.resource.data.keys().hasOnly(['artistId','tipoEvento','status','criadoEm','origem','nome','whatsapp','cidade','dataEvento','horario','resumo','campos','pacote','robos','total'])\n        && request.resource.data.artistId == 'art_dj_mothe'\n        && request.resource.data.tipoEvento in ['religioso','social','prefeitura']\n        && request.resource.data.status == 'novo'\n        && request.resource.data.criadoEm is timestamp\n        && request.resource.data.nome is string && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() <= 120\n        && request.resource.data.whatsapp is string && request.resource.data.whatsapp.size() < 40\n        && request.resource.data.resumo is string && request.resource.data.resumo.size() <= 3000\n        && request.resource.data.campos is map && request.resource.data.campos.size() <= 20;\n      allow update: if canEdit('artist:' + resource.data.artistId) && request.resource.data.artistId == resource.data.artistId;\n      allow delete: if canEdit('artist:' + resource.data.artistId);\n    }\n  }\n}";
+        const RULES = "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    function hasMail() { return request.auth != null && request.auth.token.email != null; }\n    function mail() { return request.auth.token.email.lower(); }\n    function teamRef() { return /databases/$(database)/documents/alpha_team_v1/$(mail()); }\n    function isOwner() { return hasMail() && mail() == 'alphaproducoes22@gmail.com'; }\n    function inTeam() { return hasMail() && exists(teamRef()) && get(teamRef()).data.get('active', true) != false; }\n    function isAdmin() { return isOwner() || (inTeam() && get(teamRef()).data.get('role', 'user') == 'admin'); }\n    function member() { return isOwner() || inTeam(); }\n    function canEdit(scope) { return isAdmin() || (inTeam() && scope in get(teamRef()).data.get('scopesEdit', [])); }\n    function anyEdit() { return isAdmin() || (inTeam() && get(teamRef()).data.get('scopesEdit', []).size() > 0); }\n    function evScope(d) { return d.get('artistId', '') != '' ? 'artist:' + d.artistId : (d.get('kind', '') == 'tour' ? 'tours' : 'events'); }\n    function leadScope(d) { return d.get('artistId', '') != '' ? 'artist:' + d.artistId : 'leads-sem-artista'; }\n\n    match /alpha_team_v1/{teamId} {\n      allow read: if member() || (hasMail() && mail() == teamId);\n      allow write: if isAdmin();\n    }\n    match /alpha_productions_v42/{id} {\n      allow read: if member();\n      allow create: if canEdit(evScope(request.resource.data));\n      allow update: if canEdit(evScope(resource.data)) && canEdit(evScope(request.resource.data));\n      allow delete: if canEdit(evScope(resource.data));\n    }\n    match /alpha_artists_roster_v42/{id} {\n      allow read: if member();\n      allow create, delete: if isAdmin();\n      allow update: if canEdit('artist:' + id);\n    }\n    match /alpha_artist_clients_v42/{id} {\n      allow read: if member();\n      allow create: if canEdit(leadScope(request.resource.data));\n      allow update: if canEdit(leadScope(resource.data)) && canEdit(leadScope(request.resource.data));\n      allow delete: if canEdit(leadScope(resource.data));\n    }\n    match /alpha_suppliers_v42/{id} { allow read: if member(); allow write: if canEdit('cadastros'); }\n    match /alpha_sponsors_v42/{id} { allow read: if member(); allow write: if canEdit('cadastros'); }\n    match /alpha_road_crew_v42/{id} { allow read: if member(); allow write: if anyEdit(); }\n    match /alpha_office_collaborators_v42/{id} { allow read, write: if member(); }\n    match /alpha_files_v1/{id} { allow read, write: if member(); }\n    match /alpha_diag_v1/{id} { allow read, write: if member(); }\n    match /alpha_site_pedidos_v1/{id} {\n      allow read: if member();\n      // a equipe cria envios de link e atualiza / exclui pedidos\n      allow create: if canEdit('artist:' + request.resource.data.get('artistId', ''));\n      allow update: if canEdit('artist:' + resource.data.artistId) && request.resource.data.artistId == resource.data.artistId;\n      allow delete: if canEdit('artist:' + resource.data.artistId);\n      // o site cria pedidos novos (formulário)\n      allow create: if request.resource.data.keys().hasOnly(['artistId','tipoEvento','status','criadoEm','origem','nome','whatsapp','cidade','dataEvento','horario','resumo','campos','pacote','robos','total'])\n        && request.resource.data.artistId == 'art_dj_mothe'\n        && request.resource.data.tipoEvento in ['religioso','social','prefeitura']\n        && request.resource.data.status == 'novo'\n        && request.resource.data.criadoEm is timestamp\n        && request.resource.data.nome is string && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() <= 120\n        && request.resource.data.whatsapp is string && request.resource.data.whatsapp.size() < 40\n        && request.resource.data.resumo is string && request.resource.data.resumo.size() <= 3000\n        && request.resource.data.campos is map && request.resource.data.campos.size() <= 20;\n      // o site registra o pacote escolhido pela cliente que recebeu o link\n      allow update: if resource.data.get('viaLink', false) == true\n        && resource.data.status in ['enviado','novo']\n        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pacote','robos','total','status','escolhidoEm','resumo'])\n        && request.resource.data.status == 'novo'\n        && request.resource.data.pacote in ['start','impact','experience']\n        && request.resource.data.robos is int && request.resource.data.robos >= 0 && request.resource.data.robos <= 2\n        && request.resource.data.total is number\n        && request.resource.data.escolhidoEm is timestamp\n        && request.resource.data.resumo is string && request.resource.data.resumo.size() <= 3000;\n    }\n    match /alpha_site_fichas_v1/{id} {\n      allow read, delete: if member();\n      // a cliente envia a ficha do contrato pelo link (pode corrigir e reenviar)\n      allow create, update: if id.size() >= 20 && id.size() <= 40\n        && request.resource.data.keys().hasOnly(['tipo','campos','enviadoEm'])\n        && request.resource.data.tipo in ['social','religioso']\n        && request.resource.data.campos is map && request.resource.data.campos.size() <= 25\n        && request.resource.data.enviadoEm is timestamp;\n    }\n  }\n}";
         window.ALPHA_RULES = RULES;
         const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
         function ensureModal() {
@@ -9007,7 +9007,10 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
 (function () {
     const COL = 'alpha_site_pedidos_v1';
     const ART = 'art_dj_mothe';
-    const STATUS = [['novo', '🆕 Novo'], ['conversa', '💬 Em conversa'], ['sinal', '⏳ Aguardando sinal'], ['fechado', '✅ Fechado'], ['perdido', '❌ Perdido']];
+    const COL_FICHA = 'alpha_site_fichas_v1';
+    const fichaDe = (p) => (p && p.fichaId && window.app && window.app.siteFichas) ? window.app.siteFichas[p.fichaId] : null;
+    const token = () => { const a = new Uint8Array(12); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach((x, i) => { a[i] = Math.random() * 256; }); return Array.from(a, b => ('0' + b.toString(16)).slice(-2)).join(''); };
+    const STATUS = [['enviado', '📨 Site enviado'], ['novo', '🆕 Novo'], ['conversa', '💬 Em conversa'], ['sinal', '⏳ Aguardando sinal'], ['fechado', '✅ Fechado'], ['perdido', '❌ Perdido']];
     const STATUS_NOME = Object.fromEntries(STATUS);
     const TIPO = { religioso: ['⛪', 'Religioso', 'badge-info'], social: ['💍', 'Social', 'badge-warn'], prefeitura: ['🏛️', 'Prefeitura', 'badge-info'] };
     const CAT_SOCIAL = { 'Casamento': 'Casamento / Noivos', 'XV anos': 'Debutante / XV Anos', 'Aniversário': 'Aniversariante', 'Formatura': 'Formatura' };
@@ -9082,25 +9085,32 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
             if (!pode('edit')) return;
             const p = (this.sitePedidos || []).find(x => x.id === id); if (!p) return;
             const c = p.campos || {};
+            const fx = fichaDe(p); const F = (fx && fx.campos) || {};
             pedidoDoModal = p.id;
             this.activeArtistId = ART;
             this.openArtistEventModal(ART);
             await new Promise(r => setTimeout(r, 350));
-            const tipo = TIPO_EVENTO[c.tipo] || (p.tipoEvento === 'social' ? 'Outros' : 'Evento em Igreja');
+            const tipo = TIPO_EVENTO[F.tipoEvento] || TIPO_EVENTO[c.tipo] || (p.tipoEvento === 'social' ? 'Outros' : 'Evento em Igreja');
             setVal('ae-type', tipo, 'change');
             try { this.toggleArtistSocialFields(tipo); } catch (e) {}
-            const titulo = p.tipoEvento === 'social' ? (c.tipo || 'Festa') + ' — ' + (p.nome || '') : (c.tipo || 'Evento') + ' — ' + (c.organizacao || p.nome || '');
+            const titulo = p.tipoEvento === 'social' ? (F.tipoEvento || c.tipo || 'Festa') + ' — ' + (F.homenageados || p.nome || '') : (F.nomeEvento || ((c.tipo || 'Evento') + ' — ' + (c.organizacao || p.nome || '')));
             setVal('ae-title', titulo);
-            setVal('ae-date', p.dataEvento, 'change');
-            setVal('ae-venue', p.tipoEvento === 'social' ? c.local : (c.organizacao || ''), 'change');
-            setVal('ae-contact', p.nome);
-            setVal('ae-whatsapp', p.whatsapp);
-            setVal('ae-ct-hora', p.horario, 'change');
-            setVal('ae-ct-nome', p.tipoEvento === 'social' ? p.nome : c.organizacao);
+            setVal('ae-date', F.dataEvento || p.dataEvento, 'change');
+            setVal('ae-venue', F.local || (p.tipoEvento === 'social' ? c.local : (c.organizacao || '')), 'change');
+            setVal('ae-address', F.enderecoLocal);
+            setVal('ae-contact', F.responsavel || F.nomeCompleto || p.nome);
+            setVal('ae-whatsapp', F.telefone || p.whatsapp);
+            setVal('ae-ct-hora', F.horario || p.horario, 'change');
+            setVal('ae-ct-nome', F.nomeCompleto || F.razaoSocial || (p.tipoEvento === 'social' ? p.nome : c.organizacao));
+            setVal('ae-ct-doc', String(F.cpf || F.cnpj || '').replace(/\D/g, ''));
+            setVal('ae-ct-end', F.enderecoResidencial || F.enderecoSede);
+            setVal('ae-honoree', F.homenageados);
+            setVal('ae-ceremonialist', F.cerimonialista);
+            setVal('ae-ceremonialist-phone', F.cerimonialistaTel);
             if (p.tipoEvento === 'social' && p.total) { setVal('ae-contracted-val', String(p.total)); try { this.autoCalcModalCommission(); } catch (e) {} try { window.AlphaPay && AlphaPay.modalRecalc(); } catch (e) {} }
             if (p.tipoEvento === 'religioso') setVal('ae-fee-type', 'Cachê', 'change');
             // cidade / estado
-            const loc = separaCidade(p.cidade);
+            const loc = F.cidade ? { city: F.cidade, state: String(F.uf || '').toUpperCase() } : separaCidade(p.cidade);
             const ufSel = document.getElementById('ae-uf');
             if (ufSel && loc.state && Array.from(ufSel.options).some(o => o.value === loc.state)) {
                 ufSel.value = loc.state;
@@ -9117,7 +9127,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                 const falta = marcaFaltando();
                 av.className = 'p-3 rounded-xl text-xs font-bold';
                 av.style.cssText = 'background:rgba(224,178,90,.12);border:1px solid rgba(224,178,90,.5);color:#E0B25A';
-                av.innerHTML = '🌐 Dados trazidos do pedido do site de <b>' + esc(p.nome || '') + '</b>.' +
+                av.innerHTML = '🌐 Dados trazidos ' + (fx ? 'da <b>ficha do contrato</b> e ' : '') + 'do pedido do site de <b>' + esc(p.nome || '') + '</b>.' +
                     (falta ? ' Os campos com <u>borda amarela</u> (' + falta + ') ainda faltam para o contrato. Peça ao cliente pelo WhatsApp e preencha antes de salvar.' : ' Confira e salve.') +
                     (p.tipoEvento === 'social' ? '<br><span style="font-weight:600">Contrato social: nome completo, CPF e endereço residencial do representante legal.</span>' : '<br><span style="font-weight:600">Contrato religioso: razão social, CNPJ e endereço da sede da igreja/instituição.</span>');
             }
@@ -9157,6 +9167,16 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
             }, () => { ligado = false; setTimeout(ligar, 30000); });
         }
         (window.__alphaAuthReady || Promise.resolve()).then(ligar);
+        app.siteFichas = app.siteFichas || {};
+        let ligadoF = false;
+        function ligarFichas() {
+            if (ligadoF || !window.firebaseDb) return; ligadoF = true;
+            onSnapshot(collection(window.firebaseDb, COL_FICHA), (snap) => {
+                const m = {}; snap.forEach(d => { m[d.id] = d.data(); }); app.siteFichas = m;
+                if (app.view === 'artist_hub' && app.artistSubView === 'pedidos') app.render();
+            }, () => { ligadoF = false; setTimeout(ligarFichas, 30000); });
+        }
+        (window.__alphaAuthReady || Promise.resolve()).then(ligarFichas);
 
         /* ---------- aviso de pedidos novos no item "DJ MOTHÉ" (dentro de Gestão de Artistas) ---------- */
         const novos = () => (app.sitePedidos || []).filter(x => (x.status || 'novo') === 'novo').length;
@@ -9180,7 +9200,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
             const f = app.pedF;
             return (app.sitePedidos || []).filter(p => {
                 if (f.tipo && p.tipoEvento !== f.tipo) return false;
-                if (f.status === 'ativos') return ['novo', 'conversa', 'sinal'].indexOf(p.status || 'novo') !== -1;
+                if (f.status === 'ativos') return ['enviado', 'novo', 'conversa', 'sinal'].indexOf(p.status || 'novo') !== -1;
                 if (f.status && p.status !== f.status) return false;
                 return true;
             });
@@ -9198,11 +9218,20 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                 STATUS.map(s => '<option value="' + s[0] + '"' + ((p.status || 'novo') === s[0] ? ' selected' : '') + '>' + s[1] + '</option>').join('') + '</select>';
             const noBanco = p.leadId && (app.artistClients || []).some(x => x.id === p.leadId);
             const temEvento = p.eventoId && (app.data || []).some(d => d.id === p.eventoId);
+            const fx = fichaDe(p);
+            const aguardando = p.status === 'enviado';
+            const blocoEnviado = aguardando ? '<div class="mt-3 p-3 rounded-xl bg-alpha-dark border border-alpha-border text-xs"><b class="text-alpha-title">📨 Site enviado</b> <span class="text-alpha-muted">— aguardando a cliente escolher o pacote.</span>' +
+                (edita ? '<div class="flex flex-wrap gap-2 mt-2"><button onclick="app.pedCopiarSite(\'' + esc(p.id) + '\')" class="btn-secondary-alpha px-3 py-1.5 rounded-lg text-xs font-bold">📋 Copiar link</button>' + (p.whatsapp ? '<button onclick="app.pedWaSite(\'' + esc(p.id) + '\')" class="btn-secondary-alpha status-pos px-3 py-1.5 rounded-lg text-xs font-bold">💬 Reenviar pelo WhatsApp</button>' : '') + '</div>' : '') + '</div>' : '';
+            const podeFicha = edita && !temEvento && ['conversa', 'sinal', 'fechado'].indexOf(p.status) !== -1;
+            const blocoFicha = fx ? '<details class="mt-3 text-xs" open><summary class="cursor-pointer font-bold status-pos">✅ Ficha do contrato recebida (' + esc(quando(fx.enviadoEm)) + ')</summary><div class="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 bg-alpha-dark border border-alpha-border rounded-xl p-3">' +
+                    Object.keys(ROT_FICHA).filter(k => (fx.campos || {})[k]).map(k => '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">' + ROT_FICHA[k] + '</span><b class="text-alpha-title break-words">' + esc(k === 'dataEvento' ? dataBR(fx.campos[k]) : fx.campos[k]) + '</b></div>').join('') + '</div></details>'
+                : (p.fichaId ? '<div class="mt-3 p-3 rounded-xl bg-alpha-dark border border-alpha-border text-xs"><b class="text-alpha-title">📝 Ficha do contrato enviada</b> <span class="text-alpha-muted">— aguardando a cliente preencher.</span>' + (edita ? '<div class="flex flex-wrap gap-2 mt-2"><button onclick="app.pedCopiarFicha(\'' + esc(p.id) + '\')" class="btn-secondary-alpha px-3 py-1.5 rounded-lg text-xs font-bold">📋 Copiar link</button>' + (p.whatsapp ? '<button onclick="app.pedWaFicha(\'' + esc(p.id) + '\')" class="btn-secondary-alpha status-pos px-3 py-1.5 rounded-lg text-xs font-bold">💬 Reenviar pelo WhatsApp</button>' : '') + '</div>' : '') + '</div>'
+                    : (podeFicha ? '<button onclick="app.pedWaFicha(\'' + esc(p.id) + '\')" class="mt-3 w-full btn-secondary-alpha px-4 py-2.5 rounded-xl text-sm font-extrabold">📝 ' + (p.whatsapp ? 'Enviar' : 'Copiar') + ' ficha do contrato para a cliente</button>' : ''));
             return '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-5 flex flex-col">' +
                 '<div class="flex flex-wrap items-center gap-2 text-[10px] mb-3">' +
                     '<span class="' + t[2] + ' px-2 py-0.5 rounded font-bold">' + t[0] + ' ' + esc(t[1]) + '</span>' +
                     '<span class="px-2 py-0.5 rounded bg-alpha-dark border border-alpha-border text-alpha-muted font-bold">📍 Origem: ' + esc(p.origem || 'Link direto') + '</span>' +
-                    '<span class="ml-auto text-alpha-muted">Recebido ' + esc(quando(p.criadoEm)) + '</span></div>' +
+                    '<span class="ml-auto text-alpha-muted">' + (aguardando ? 'Enviado ' : 'Recebido ') + esc(quando(p.escolhidoEm || p.criadoEm)) + '</span></div>' +
                 '<div class="text-lg font-extrabold text-alpha-title leading-tight">' + esc(p.nome || '-') + '</div>' +
                 (sub ? '<div class="text-xs text-alpha-text font-semibold mt-0.5">' + esc(sub) + '</div>' : '') +
                 '<div class="grid grid-cols-2 gap-2 mt-3 text-xs">' +
@@ -9211,7 +9240,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                     (c.convidados || c.publico ? '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">' + (c.convidados ? 'Convidados' : 'Público') + '</span><b class="text-alpha-title">' + esc(c.convidados || c.publico) + '</b></div>' : '') +
                     (c.local ? '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">Local</span><b class="text-alpha-title">' + esc(c.local) + '</b></div>' : '') +
                     (c.cargo ? '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">Cargo</span><b class="text-alpha-title">' + esc(c.cargo) + '</b></div>' : '') +
-                '</div>' + pacote +
+                '</div>' + pacote + blocoEnviado + blocoFicha +
                 '<details class="mt-3 text-xs"><summary class="cursor-pointer text-alpha-muted font-bold">Ver mensagem completa</summary><pre class="whitespace-pre-wrap font-sans text-alpha-text bg-alpha-dark border border-alpha-border rounded-xl p-3 mt-2">' + esc(p.resumo || '') + '</pre></details>' +
                 (temEvento ? '<div class="mt-3 p-2.5 rounded-xl text-xs font-bold status-pos bg-alpha-dark border border-alpha-border">✅ Evento criado na agenda do DJ MOTHÉ</div>'
                     : (edita && ['sinal', 'fechado'].indexOf(p.status) !== -1 ? '<button onclick="app.pedCriarEvento(\'' + esc(p.id) + '\')" class="mt-3 w-full btn-primary-alpha px-4 py-2.5 rounded-xl text-sm font-extrabold">📅 Criar evento com estes dados</button>' : '')) +
@@ -9240,14 +9269,62 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
             const seg = (k, v, label, n) => '<button onclick="app.pedSetF(\'' + k + '\',\'' + v + '\')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ' + (f[k] === v ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha') + '">' + label + (n !== undefined ? ' (' + n + ')' : '') + '</button>';
             const lista = filtrados();
             return abas() + '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-6 mb-5"><div class="flex flex-wrap items-center justify-between gap-4">' +
-                '<div><span class="text-xs font-black uppercase text-alpha-gray block">PÁGINA DE PROPOSTA • DJ MOTHÉ</span>' +
+                '<div><span class="text-xs font-black uppercase text-alpha-gray block">SITE DO DJ MOTHÉ</span>' +
                 '<h3 class="text-2xl font-extrabold text-alpha-title">🌐 Pedidos do Site (' + all.length + ')</h3>' +
-                '<p class="text-xs text-alpha-muted mt-1">Cada formulário enviado pela página do Mothé aparece aqui na hora. Atualize o status conforme a conversa no WhatsApp e salve no Banco de Leads.</p></div></div></div>' +
+                '<p class="text-xs text-alpha-muted mt-1">Pedidos feitos pelo site e clientes para quem vocês enviaram o link. Atualize o status conforme a conversa no WhatsApp.</p></div>' +
+                (edita ? '<div class="flex flex-wrap gap-2"><button onclick="app.pedNovoEnvio()" class="btn-primary-alpha px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold">🔗 Copiar link do site para cliente</button><button onclick="app.pedConfigSite()" title="Endereço do site" class="btn-secondary-alpha px-3 py-2.5 rounded-xl text-xs">⚙️</button></div>' : '') + '</div></div>' +
                 '<div class="flex flex-wrap gap-2 mb-3">' + seg('tipo', '', 'Todos', all.length) + seg('tipo', 'religioso', '⛪ Religiosos', conta(p => p.tipoEvento === 'religioso')) + seg('tipo', 'social', '💍 Sociais', conta(p => p.tipoEvento === 'social')) + '</div>' +
                 '<div class="flex flex-wrap gap-2 mb-5">' + seg('status', 'ativos', '🔥 Em aberto') + STATUS.map(s => seg('status', s[0], s[1], conta(p => (p.status || 'novo') === s[0]))).join('') + seg('status', '', 'Todos') + '</div>' +
                 (lista.length ? '<div class="grid grid-cols-1 xl:grid-cols-2 gap-4">' + lista.map(p => card(p, edita)).join('') + '</div>'
                     : '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-10 text-center text-alpha-muted text-sm">Nenhum pedido aqui ainda.</div>');
         };
+
+        /* ---------- enviar site / ficha ---------- */
+        const ROT_FICHA = { nomeCompleto: 'Nome completo', razaoSocial: 'Razão social', cpf: 'CPF', cnpj: 'CNPJ', telefone: 'WhatsApp', responsavel: 'Responsável', enderecoResidencial: 'Endereço residencial', enderecoSede: 'Endereço da sede', tipoEvento: 'Tipo de evento', nomeEvento: 'Nome do evento', homenageados: 'Homenageados', dataEvento: 'Data', horario: 'Horário', local: 'Local', enderecoLocal: 'Endereço do local', cidade: 'Cidade', uf: 'UF', cerimonialista: 'Cerimonialista', cerimonialistaTel: 'WhatsApp cerimonialista', obs: 'Observações' };
+        function siteBase() {
+            const art = (app.artistsRoster || []).find(a => a.id === ART) || {};
+            let u = String(art.siteUrl || '').trim(); if (!u) return '';
+            if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+            return u.replace(/\/(index\.html)?$/i, '') + '/';
+        }
+        app.pedConfigSite = async function () {
+            const art = (this.artistsRoster || []).find(a => a.id === ART); if (!art) return false;
+            const v = prompt('Endereço do site do DJ Mothé (o link do GitHub Pages).\nEx: alphaproducoes22.github.io/djmothe', art.siteUrl || '');
+            if (v === null) return false;
+            art.siteUrl = v.trim();
+            try { await setDoc(doc(window.firebaseDb, 'alpha_artists_roster_v42', art.id), art); } catch (e) { alert('Não consegui salvar: ' + ((e && e.code) || e)); return false; }
+            try { this.saveLocalOnly && this.saveLocalOnly(); } catch (e) {}
+            return !!art.siteUrl;
+        };
+        async function garanteSite() { if (siteBase()) return true; alert('Antes, informe o endereço do site do DJ Mothé (só precisa fazer uma vez).'); return await app.pedConfigSite(); }
+        const linkSite = (p) => siteBase() + '?c=' + encodeURIComponent(p.nome || '') + '&r=' + encodeURIComponent(p.id);
+        const linkFicha = (p) => siteBase() + 'ficha.html?f=' + encodeURIComponent(p.fichaId) + '&t=' + (p.tipoEvento === 'religioso' ? 'religioso' : 'social') + '&n=' + encodeURIComponent((p.nome || '').split(' ')[0]);
+        const msgSite = (p) => 'Olá, ' + ((p.nome || '').split(' ')[0] || 'tudo bem') + '! Conheça o trabalho do DJ Mothé e escolha o pacote ideal para a sua festa. É só tocar no link, ver as opções e clicar em *"Escolher este pacote"*:\n' + linkSite(p);
+        const msgFicha = (p) => 'Olá, ' + ((p.nome || '').split(' ')[0] || 'tudo bem') + '! Que alegria ter você com a gente! 💙 Para prepararmos o seu contrato, preencha os dados neste link (leva só 2 minutinhos):\n' + linkFicha(p);
+        function abreWa(fone, msg) {
+            const d = String(fone || '').replace(/\D/g, ''); const n = d ? (d.startsWith('55') ? d : '55' + d) : '';
+            const url = (n ? 'https://wa.me/' + n : 'https://wa.me/') + '?text=' + encodeURIComponent(msg);
+            const w = window.open(url, '_blank'); if (!w) location.href = url;
+        }
+        async function copia(txt) {
+            try { await navigator.clipboard.writeText(txt); alert('Mensagem com o link copiada! ✅\n\nÉ só colar na conversa com a cliente no WhatsApp.'); }
+            catch (e) { prompt('Copie o link abaixo:', txt); }
+        }
+        app.pedNovoEnvio = async function () {
+            if (!pode('edit') || !(await garanteSite())) return;
+            const nome = (prompt('Nome da cliente (aparece na saudação do site):') || '').trim(); if (!nome) return;
+            const fone = '';
+            const id = 'ped_' + token();
+            const ped = { artistId: ART, tipoEvento: 'social', status: 'enviado', viaLink: true, criadoEm: new Date(), origem: 'Link enviado pela agenda', nome: nome.slice(0, 120), whatsapp: fone.slice(0, 39), cidade: '', resumo: '', campos: {}, criadoPor: quem() };
+            try { await setDoc(doc(window.firebaseDb, COL, id), ped); } catch (e) { alert('Não consegui criar o envio: ' + ((e && e.code) || e)); return; }
+            const p = Object.assign({ id: id }, ped); (app.sitePedidos = app.sitePedidos || []).unshift(p); app.render();
+            copia(msgSite(p));
+        };
+        app.pedCopiarSite = async function (id) { const p = (this.sitePedidos || []).find(x => x.id === id); if (p && await garanteSite()) copia(msgSite(p)); };
+        app.pedWaSite = async function (id) { const p = (this.sitePedidos || []).find(x => x.id === id); if (p && await garanteSite()) { if (p.whatsapp) abreWa(p.whatsapp, msgSite(p)); else copia(msgSite(p)); } };
+        async function garanteFicha(p) { if (!p.fichaId) await grava(p.id, { fichaId: 'fx_' + token() }); return p; }
+        app.pedWaFicha = async function (id) { const p = (this.sitePedidos || []).find(x => x.id === id); if (!p || !pode('edit') || !(await garanteSite())) return; await garanteFicha(p); if (p.whatsapp) abreWa(p.whatsapp, msgFicha(p)); else copia(msgFicha(p)); this.render(); };
+        app.pedCopiarFicha = async function (id) { const p = (this.sitePedidos || []).find(x => x.id === id); if (!p || !(await garanteSite())) return; await garanteFicha(p); copia(msgFicha(p)); this.render(); };
 
         /* ---------- ações ---------- */
         const quem = () => ((window.__alphaAuth || {}).email || '');
