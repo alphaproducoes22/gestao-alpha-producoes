@@ -6820,7 +6820,7 @@ window.addEventListener('load', () => {
         }
 
         /* ---------- Painel de diagnóstico ---------- */
-        const RULES = "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    function hasMail() { return request.auth != null && request.auth.token.email != null; }\n    function mail() { return request.auth.token.email.lower(); }\n    function teamRef() { return /databases/$(database)/documents/alpha_team_v1/$(mail()); }\n    function isOwner() { return hasMail() && mail() == 'alphaproducoes22@gmail.com'; }\n    function inTeam() { return hasMail() && exists(teamRef()) && get(teamRef()).data.get('active', true) != false; }\n    function isAdmin() { return isOwner() || (inTeam() && get(teamRef()).data.get('role', 'user') == 'admin'); }\n    function member() { return isOwner() || inTeam(); }\n    function canEdit(scope) { return isAdmin() || (inTeam() && scope in get(teamRef()).data.get('scopesEdit', [])); }\n    function anyEdit() { return isAdmin() || (inTeam() && get(teamRef()).data.get('scopesEdit', []).size() > 0); }\n    function evScope(d) { return d.get('artistId', '') != '' ? 'artist:' + d.artistId : (d.get('kind', '') == 'tour' ? 'tours' : 'events'); }\n    function leadScope(d) { return d.get('artistId', '') != '' ? 'artist:' + d.artistId : 'leads-sem-artista'; }\n\n    match /alpha_team_v1/{teamId} {\n      allow read: if member() || (hasMail() && mail() == teamId);\n      allow write: if isAdmin();\n    }\n    match /alpha_productions_v42/{id} {\n      allow read: if member();\n      allow create: if canEdit(evScope(request.resource.data));\n      allow update: if canEdit(evScope(resource.data)) && canEdit(evScope(request.resource.data));\n      allow delete: if canEdit(evScope(resource.data));\n    }\n    match /alpha_artists_roster_v42/{id} {\n      allow read: if member();\n      allow create, delete: if isAdmin();\n      allow update: if canEdit('artist:' + id);\n    }\n    match /alpha_artist_clients_v42/{id} {\n      allow read: if member();\n      allow create: if canEdit(leadScope(request.resource.data));\n      allow update: if canEdit(leadScope(resource.data)) && canEdit(leadScope(request.resource.data));\n      allow delete: if canEdit(leadScope(resource.data));\n    }\n    match /alpha_suppliers_v42/{id} { allow read: if member(); allow write: if canEdit('cadastros'); }\n    match /alpha_sponsors_v42/{id} { allow read: if member(); allow write: if canEdit('cadastros'); }\n    match /alpha_road_crew_v42/{id} { allow read: if member(); allow write: if anyEdit(); }\n    match /alpha_office_collaborators_v42/{id} { allow read, write: if member(); }\n    match /alpha_files_v1/{id} { allow read, write: if member(); }\n    match /alpha_diag_v1/{id} { allow read, write: if member(); }\n  }\n}";
+        const RULES = "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    function hasMail() { return request.auth != null && request.auth.token.email != null; }\n    function mail() { return request.auth.token.email.lower(); }\n    function teamRef() { return /databases/$(database)/documents/alpha_team_v1/$(mail()); }\n    function isOwner() { return hasMail() && mail() == 'alphaproducoes22@gmail.com'; }\n    function inTeam() { return hasMail() && exists(teamRef()) && get(teamRef()).data.get('active', true) != false; }\n    function isAdmin() { return isOwner() || (inTeam() && get(teamRef()).data.get('role', 'user') == 'admin'); }\n    function member() { return isOwner() || inTeam(); }\n    function canEdit(scope) { return isAdmin() || (inTeam() && scope in get(teamRef()).data.get('scopesEdit', [])); }\n    function anyEdit() { return isAdmin() || (inTeam() && get(teamRef()).data.get('scopesEdit', []).size() > 0); }\n    function evScope(d) { return d.get('artistId', '') != '' ? 'artist:' + d.artistId : (d.get('kind', '') == 'tour' ? 'tours' : 'events'); }\n    function leadScope(d) { return d.get('artistId', '') != '' ? 'artist:' + d.artistId : 'leads-sem-artista'; }\n\n    match /alpha_team_v1/{teamId} {\n      allow read: if member() || (hasMail() && mail() == teamId);\n      allow write: if isAdmin();\n    }\n    match /alpha_productions_v42/{id} {\n      allow read: if member();\n      allow create: if canEdit(evScope(request.resource.data));\n      allow update: if canEdit(evScope(resource.data)) && canEdit(evScope(request.resource.data));\n      allow delete: if canEdit(evScope(resource.data));\n    }\n    match /alpha_artists_roster_v42/{id} {\n      allow read: if member();\n      allow create, delete: if isAdmin();\n      allow update: if canEdit('artist:' + id);\n    }\n    match /alpha_artist_clients_v42/{id} {\n      allow read: if member();\n      allow create: if canEdit(leadScope(request.resource.data));\n      allow update: if canEdit(leadScope(resource.data)) && canEdit(leadScope(request.resource.data));\n      allow delete: if canEdit(leadScope(resource.data));\n    }\n    match /alpha_suppliers_v42/{id} { allow read: if member(); allow write: if canEdit('cadastros'); }\n    match /alpha_sponsors_v42/{id} { allow read: if member(); allow write: if canEdit('cadastros'); }\n    match /alpha_road_crew_v42/{id} { allow read: if member(); allow write: if anyEdit(); }\n    match /alpha_office_collaborators_v42/{id} { allow read, write: if member(); }\n    match /alpha_files_v1/{id} { allow read, write: if member(); }\n    match /alpha_diag_v1/{id} { allow read, write: if member(); }\n    match /alpha_site_pedidos_v1/{id} {\n      allow read: if member();\n      allow create: if request.resource.data.keys().hasOnly(['artistId','tipoEvento','status','criadoEm','origem','nome','whatsapp','cidade','dataEvento','horario','resumo','campos','pacote','robos','total'])\n        && request.resource.data.artistId == 'art_dj_mothe'\n        && request.resource.data.tipoEvento in ['religioso','social','prefeitura']\n        && request.resource.data.status == 'novo'\n        && request.resource.data.criadoEm is timestamp\n        && request.resource.data.nome is string && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() <= 120\n        && request.resource.data.whatsapp is string && request.resource.data.whatsapp.size() < 40\n        && request.resource.data.resumo is string && request.resource.data.resumo.size() <= 3000\n        && request.resource.data.campos is map && request.resource.data.campos.size() <= 20;\n      allow update: if canEdit('artist:' + resource.data.artistId) && request.resource.data.artistId == resource.data.artistId;\n      allow delete: if canEdit('artist:' + resource.data.artistId);\n    }\n  }\n}";
         window.ALPHA_RULES = RULES;
         const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
         function ensureModal() {
@@ -8959,6 +8959,186 @@ window.addEventListener('load', () => {
         app.render();
     }
     const t = setInterval(() => { if (window.app && app.render && app.openChecklist && window.__alphaAlerts && app.getShowSuppliersList) { clearInterval(t); try { install(window.app); } catch (e) { console.error(e); } } }, 900);
+})();
+</script>
+
+<script type="module" id="alpha-site-pedidos">
+/* ===== Pedidos do Site (landing page do DJ Mothé) =====
+   Cada formulário enviado na página do Mothé grava um pedido na coleção "alpha_site_pedidos_v1".
+   Aqui eles aparecem na tela "Pedidos do Site", com status, WhatsApp e o botão para salvar no Banco de Leads. */
+import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+(function () {
+    const COL = 'alpha_site_pedidos_v1';
+    const ART = 'art_dj_mothe';
+    const STATUS = [['novo', '🆕 Novo'], ['conversa', '💬 Em conversa'], ['sinal', '⏳ Aguardando sinal'], ['fechado', '✅ Fechado'], ['perdido', '❌ Perdido']];
+    const STATUS_NOME = Object.fromEntries(STATUS);
+    const TIPO = { religioso: ['⛪', 'Religioso', 'badge-info'], social: ['💍', 'Social', 'badge-warn'], prefeitura: ['🏛️', 'Prefeitura', 'badge-info'] };
+    const CAT_SOCIAL = { 'Casamento': 'Casamento / Noivos', 'XV anos': 'Debutante / XV Anos', 'Aniversário': 'Aniversariante', 'Formatura': 'Formatura' };
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const brl = (n) => Number(n || 0).toLocaleString('pt-BR');
+    const dataBR = (v) => { if (!v) return ''; const p = String(v).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : v; };
+    const quando = (t) => { try { const d = t && t.toDate ? t.toDate() : (t ? new Date(t) : null); return d ? d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''; } catch (e) { return ''; } };
+    const ms = (t) => { try { return t && t.toMillis ? t.toMillis() : (t ? new Date(t).getTime() : 0); } catch (e) { return 0; } };
+
+    function install(app) {
+        if (app.__sitePedidosOn) return; app.__sitePedidosOn = true;
+        app.sitePedidos = app.sitePedidos || [];
+        app.pedF = app.pedF || { tipo: '', status: 'ativos' };
+
+        const pode = (modo) => { const p = app.perm; if (!p || p.admin) return true; return p.can('artist:' + ART, modo || 'view'); };
+
+        /* ---------- tempo real ---------- */
+        let ligado = false;
+        function ligar() {
+            if (ligado || !window.firebaseDb) return; ligado = true;
+            onSnapshot(collection(window.firebaseDb, COL), (snap) => {
+                const l = []; snap.forEach(d => l.push(Object.assign({}, d.data(), { id: d.id })));
+                l.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+                app.sitePedidos = l;
+                pintaMenu();
+                if (app.view === 'site_pedidos') app.render();
+            }, () => { ligado = false; setTimeout(ligar, 30000); });
+        }
+        (window.__alphaAuthReady || Promise.resolve()).then(ligar);
+
+        /* ---------- botão no menu lateral ---------- */
+        function pintaMenu() {
+            const leads = document.getElementById('side-leads'); if (!leads || !leads.parentNode) return;
+            let b = document.getElementById('side-pedidos');
+            if (!b) {
+                b = document.createElement('button'); b.id = 'side-pedidos'; b.type = 'button';
+                b.setAttribute('onclick', "app.openSitePedidos()");
+                leads.parentNode.insertBefore(b, leads.nextSibling);
+            }
+            b.style.display = pode('view') ? '' : 'none';
+            const n = (app.sitePedidos || []).filter(x => x.status === 'novo').length;
+            b.className = 'w-full text-left px-3.5 py-3 rounded-xl text-xs sm:text-sm flex items-center gap-3 shrink-0 ' + (app.sidebarActive === 'site_pedidos' ? 'font-extrabold btn-primary-alpha shadow-md' : 'font-bold');
+            b.innerHTML = '<span>🌐</span><span class="flex-1">Pedidos do Site</span>' + (n ? '<span class="text-[10px] font-black px-2 py-0.5 rounded-full" style="background:#D9777A;color:#fff">' + n + '</span>' : '');
+        }
+
+        app.openSitePedidos = function () {
+            this.view = 'site_pedidos'; this.sidebarActive = 'site_pedidos';
+            this.activeItemId = null; this.activeShowId = null;
+            this.render();
+            try { window.scrollTo(0, 0); } catch (e) {}
+        };
+        app.pedSetF = function (k, v) { this.pedF[k] = v; this.render(); };
+
+        /* ---------- tela ---------- */
+        function filtrados() {
+            const f = app.pedF;
+            return (app.sitePedidos || []).filter(p => {
+                if (f.tipo && p.tipoEvento !== f.tipo) return false;
+                if (f.status === 'ativos') return ['novo', 'conversa', 'sinal'].indexOf(p.status || 'novo') !== -1;
+                if (f.status && p.status !== f.status) return false;
+                return true;
+            });
+        }
+        function card(p, edita) {
+            const t = TIPO[p.tipoEvento] || ['📝', p.tipoEvento || '-', 'badge-info'];
+            const c = p.campos || {};
+            const wa = app.getWhatsAppUrl ? app.getWhatsAppUrl(p.whatsapp) : '';
+            const sub = p.tipoEvento === 'religioso' ? [c.organizacao, c.tipo].filter(Boolean).join(' • ')
+                : p.tipoEvento === 'prefeitura' ? [c.prefeitura, c.evento].filter(Boolean).join(' • ')
+                : (c.tipo || '');
+            const pacote = p.tipoEvento === 'social' && p.pacote
+                ? '<div class="mt-3 p-3 rounded-xl bg-alpha-dark border border-alpha-border text-xs"><span class="text-alpha-muted">Pacote:</span> <b class="text-alpha-title uppercase">' + esc(p.pacote) + '</b>' + (p.robos ? ' + ' + esc(p.robos) + ' robô(s) extra(s)' : '') + (p.total ? ' • <b class="text-alpha-yellow">R$ ' + brl(p.total) + '</b> + logística' : '') + '</div>' : '';
+            const sel = '<select ' + (edita ? '' : 'disabled ') + 'onchange="app.pedSetStatus(\'' + esc(p.id) + '\',this.value)" class="bg-alpha-dark border border-alpha-border rounded-lg px-2 py-1.5 text-xs font-bold text-alpha-title">' +
+                STATUS.map(s => '<option value="' + s[0] + '"' + ((p.status || 'novo') === s[0] ? ' selected' : '') + '>' + s[1] + '</option>').join('') + '</select>';
+            const noBanco = p.leadId && (app.artistClients || []).some(x => x.id === p.leadId);
+            return '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-5 flex flex-col">' +
+                '<div class="flex flex-wrap items-center gap-2 text-[10px] mb-3">' +
+                    '<span class="' + t[2] + ' px-2 py-0.5 rounded font-bold">' + t[0] + ' ' + esc(t[1]) + '</span>' +
+                    '<span class="px-2 py-0.5 rounded bg-alpha-dark border border-alpha-border text-alpha-muted font-bold">📍 Origem: ' + esc(p.origem || 'Link direto') + '</span>' +
+                    '<span class="ml-auto text-alpha-muted">Recebido ' + esc(quando(p.criadoEm)) + '</span></div>' +
+                '<div class="text-lg font-extrabold text-alpha-title leading-tight">' + esc(p.nome || '-') + '</div>' +
+                (sub ? '<div class="text-xs text-alpha-text font-semibold mt-0.5">' + esc(sub) + '</div>' : '') +
+                '<div class="grid grid-cols-2 gap-2 mt-3 text-xs">' +
+                    '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">Data do evento</span><b class="text-alpha-title">' + esc(dataBR(p.dataEvento) || '-') + (p.horario ? ' • ' + esc(p.horario) : '') + '</b></div>' +
+                    '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">Cidade</span><b class="text-alpha-title">' + esc(p.cidade || '-') + '</b></div>' +
+                    (c.convidados || c.publico ? '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">' + (c.convidados ? 'Convidados' : 'Público') + '</span><b class="text-alpha-title">' + esc(c.convidados || c.publico) + '</b></div>' : '') +
+                    (c.local ? '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">Local</span><b class="text-alpha-title">' + esc(c.local) + '</b></div>' : '') +
+                    (c.cargo ? '<div><span class="block text-[10px] uppercase font-bold text-alpha-muted">Cargo</span><b class="text-alpha-title">' + esc(c.cargo) + '</b></div>' : '') +
+                '</div>' + pacote +
+                '<details class="mt-3 text-xs"><summary class="cursor-pointer text-alpha-muted font-bold">Ver mensagem completa</summary><pre class="whitespace-pre-wrap font-sans text-alpha-text bg-alpha-dark border border-alpha-border rounded-xl p-3 mt-2">' + esc(p.resumo || '') + '</pre></details>' +
+                '<div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-alpha-border">' + sel +
+                    (wa ? '<a href="' + wa + '" target="_blank" class="btn-secondary-alpha status-pos px-3 py-1.5 rounded-lg text-xs font-bold">💬 ' + esc(p.whatsapp) + '</a>' : '') +
+                    (noBanco ? '<span class="text-[11px] font-bold status-pos px-2">✓ No Banco de Leads</span>'
+                        : (edita ? '<button onclick="app.pedToLead(\'' + esc(p.id) + '\')" class="btn-primary-alpha px-3 py-1.5 rounded-lg text-xs font-bold">📇 Salvar no Banco de Leads</button>' : '')) +
+                    (edita ? '<button onclick="app.pedDelete(\'' + esc(p.id) + '\')" class="ml-auto text-alpha-muted hover:text-alpha-title text-xs font-bold">🗑️ Excluir</button>' : '') +
+                '</div></div>';
+        }
+        app.renderSitePedidosView = function () {
+            const f = this.pedF, all = this.sitePedidos || [], edita = pode('edit');
+            const conta = (fn) => all.filter(fn).length;
+            const seg = (k, v, label, n) => '<button onclick="app.pedSetF(\'' + k + '\',\'' + v + '\')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ' + (f[k] === v ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha') + '">' + label + (n !== undefined ? ' (' + n + ')' : '') + '</button>';
+            const lista = filtrados();
+            return '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-6 mb-5"><div class="flex flex-wrap items-center justify-between gap-4">' +
+                '<div><span class="text-xs font-black uppercase text-alpha-gray block">PÁGINA DE PROPOSTA • DJ MOTHÉ</span>' +
+                '<h3 class="text-2xl font-extrabold text-alpha-title">🌐 Pedidos do Site (' + all.length + ')</h3>' +
+                '<p class="text-xs text-alpha-muted mt-1">Cada formulário enviado pela página do Mothé aparece aqui na hora. Atualize o status conforme a conversa no WhatsApp e salve no Banco de Leads.</p></div></div></div>' +
+                '<div class="flex flex-wrap gap-2 mb-3">' + seg('tipo', '', 'Todos', all.length) + seg('tipo', 'religioso', '⛪ Religiosos', conta(p => p.tipoEvento === 'religioso')) + seg('tipo', 'social', '💍 Sociais', conta(p => p.tipoEvento === 'social')) + seg('tipo', 'prefeitura', '🏛️ Prefeituras', conta(p => p.tipoEvento === 'prefeitura')) + '</div>' +
+                '<div class="flex flex-wrap gap-2 mb-5">' + seg('status', 'ativos', '🔥 Em aberto') + STATUS.map(s => seg('status', s[0], s[1], conta(p => (p.status || 'novo') === s[0]))).join('') + seg('status', '', 'Todos') + '</div>' +
+                (lista.length ? '<div class="grid grid-cols-1 xl:grid-cols-2 gap-4">' + lista.map(p => card(p, edita)).join('') + '</div>'
+                    : '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-10 text-center text-alpha-muted text-sm">Nenhum pedido aqui ainda.</div>');
+        };
+
+        /* ---------- ações ---------- */
+        const quem = () => ((window.__alphaAuth || {}).email || '');
+        async function grava(id, patch) {
+            const p = (app.sitePedidos || []).find(x => x.id === id); if (p) Object.assign(p, patch);
+            try { await setDoc(doc(window.firebaseDb, COL, id), Object.assign({}, patch, { atualizadoEm: Date.now(), atualizadoPor: quem() }), { merge: true }); }
+            catch (e) { alert('Não consegui salvar na nuvem: ' + ((e && e.code) || e)); }
+        }
+        app.pedSetStatus = function (id, st) { if (!pode('edit')) return; grava(id, { status: st }); this.render(); pintaMenu(); };
+        app.pedDelete = async function (id) {
+            if (!pode('edit')) return;
+            if (!confirm('Excluir este pedido do site? (Se ele já foi salvo no Banco de Leads, o lead continua lá.)')) return;
+            try { await deleteDoc(doc(window.firebaseDb, COL, id)); } catch (e) { alert('Não consegui excluir: ' + ((e && e.code) || e)); }
+        };
+        app.pedToLead = async function (id) {
+            if (!pode('edit')) return;
+            const p = (this.sitePedidos || []).find(x => x.id === id); if (!p) return;
+            const c = p.campos || {};
+            let category, org;
+            if (p.tipoEvento === 'religioso') { category = c.tipo === 'Acampamento' ? 'Acampamento' : 'Igreja'; org = c.organizacao || p.nome; }
+            else if (p.tipoEvento === 'prefeitura') { category = 'Prefeitura'; org = c.prefeitura || p.nome; }
+            else { category = CAT_SOCIAL[c.tipo] || 'Casamento / Noivos'; org = (c.tipo || 'Festa') + ' — ' + (p.nome || ''); }
+            let city = p.cidade || '', state = '';
+            const m = /^(.*?)[\s,\-\/]+([A-Za-z]{2})$/.exec(city.trim()); if (m) { city = m[1].trim(); state = m[2].toUpperCase(); }
+            const corpo = String(p.resumo || '').split('\n\n').slice(1).join('\n').replace(/\*/g, '').trim();
+            const lead = {
+                id: 'cli_' + Date.now(), category: category, artistId: ART, artistRef: this.leadArtistName ? this.leadArtistName(ART) : 'DJ Mothé',
+                org: org, contact: p.nome || '', whatsapp: p.whatsapp || '', city: city, state: state,
+                notes: '🌐 Pedido do site em ' + quando(p.criadoEm) + '\n' + corpo
+            };
+            this.artistClients = this.artistClients || []; this.artistClients.unshift(lead);
+            if (window.saveArtistClientToCloud) await window.saveArtistClientToCloud(lead);
+            try { (this.saveWithFeedback || this.save).call(this); } catch (e) {}
+            await grava(id, { leadId: lead.id, status: (p.status || 'novo') === 'novo' ? 'conversa' : p.status });
+            this.render(); pintaMenu();
+        };
+
+        /* ---------- encaixe na tela ---------- */
+        const orig = app.render;
+        app.render = function () {
+            orig.apply(this, arguments);
+            try {
+                pintaMenu();
+                if (this.view === 'site_pedidos') {
+                    const main = document.getElementById('main-content');
+                    if (main) main.innerHTML = pode('view') ? this.renderSitePedidosView() : '<div class="p-10 text-center text-alpha-muted">Sem acesso.</div>';
+                    const nav = document.getElementById('breadcrumbs');
+                    if (nav) nav.innerHTML = '<button onclick="app.navigateSidebar(\'home\')" class="hover:text-alpha-title text-alpha-text font-bold">📊 Painel Geral</button><span>/</span><span class="text-alpha-title font-bold">Pedidos do Site</span>';
+                }
+            } catch (e) { console.error(e); }
+        };
+        app.render();
+    }
+    const t = setInterval(() => {
+        const a = window.app;
+        if (a && a.render && document.getElementById('side-leads') && a.leadArtistName) { clearInterval(t); setTimeout(() => { try { install(window.app); } catch (e) { console.error(e); } }, 1500); }
+    }, 900);
 })();
 </script>
 
