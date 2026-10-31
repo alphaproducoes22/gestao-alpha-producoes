@@ -9161,7 +9161,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                 const l = []; snap.forEach(d => l.push(Object.assign({}, d.data(), { id: d.id })));
                 try { prefeiturasParaLeads(l.filter(x => x.tipoEvento === 'prefeitura')); } catch (e) { console.error(e); }
                 l.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
-                app.sitePedidos = l.filter(x => x.tipoEvento !== 'prefeitura');
+                const vistos = new Set(); app.sitePedidos = l.filter(x => x.tipoEvento !== 'prefeitura' && !vistos.has(x.id) && vistos.add(x.id));
                 pintaMenu();
                 if (app.view === 'site_pedidos') app.render();
             }, () => { ligado = false; setTimeout(ligar, 30000); });
@@ -9317,7 +9317,10 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
             const id = 'ped_' + token();
             const ped = { artistId: ART, tipoEvento: 'social', status: 'enviado', viaLink: true, criadoEm: new Date(), origem: 'Link enviado pela agenda', nome: nome.slice(0, 120), whatsapp: fone.slice(0, 39), cidade: '', resumo: '', campos: {}, criadoPor: quem() };
             try { await setDoc(doc(window.firebaseDb, COL, id), ped); } catch (e) { alert('Não consegui criar o envio: ' + ((e && e.code) || e)); return; }
-            const p = Object.assign({ id: id }, ped); (app.sitePedidos = app.sitePedidos || []).unshift(p); app.render();
+            app.sitePedidos = app.sitePedidos || [];
+            let p = app.sitePedidos.find(x => x.id === id);   // o tempo real do Firebase pode já ter trazido este envio
+            if (!p) { p = Object.assign({ id: id }, ped); app.sitePedidos.unshift(p); }
+            app.render();
             copia(msgSite(p));
         };
         app.pedCopiarSite = async function (id) { const p = (this.sitePedidos || []).find(x => x.id === id); if (p && await garanteSite()) copia(msgSite(p)); };
@@ -9622,5 +9625,152 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
     const t = setInterval(() => { if (window.app && window.AlphaPay && window.app.__livreOn) { clearInterval(t); install(); } }, 1000);
 })();
 </script>
+<script id="alpha-comissao-paga">
+/* ===== Comissão paga (todos os artistas) =====
+   - No cadastro do evento: caixinha "Comissão já foi paga".
+   - Dentro do evento (Cachê / Financeiro): marcar a comissão como recebida, com a data.
+   - No Somatório de Receitas do artista: total de comissão recebida e a receber. */
+(function () {
+    const brl = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const hoje = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const dBR = (d) => { if (!d) return ''; const p = String(d).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : d; };
+    const showDe = (it) => it ? (it.kind === 'single' ? it.show : (it.shows || [])[0]) : null;
+
+    function install() {
+        const app = window.app;
+        if (!app || !app.openArtistEventModal || !app.handleSaveArtistEvent || !app.renderArtistFeeAndContractTab || app.__comPaga) return false;
+        app.__comPaga = true;
+
+        // 1) caixinha no cadastro do evento
+        function caixaModal() {
+            if (document.getElementById('ae-comissao-paga')) { document.getElementById('ae-comissao-paga').checked = false; return; }
+            const ref = document.getElementById('ae-pagto-sinal-ja-pago'); const lab = ref && ref.closest('label'); if (!lab) return;
+            const l = document.createElement('label');
+            l.className = lab.className + ' ml-3';
+            l.innerHTML = '<input type="checkbox" id="ae-comissao-paga" class="w-3.5 h-3.5 accent-alpha-yellow"><span>🏢 Comissão já foi paga</span>';
+            lab.after(l);
+            if (lab.parentElement) { lab.parentElement.style.flexWrap = 'wrap'; lab.parentElement.style.gap = '8px'; }
+        }
+        const o0 = app.openArtistEventModal;
+        app.openArtistEventModal = function () { const r = o0.apply(this, arguments); setTimeout(caixaModal, 80); setTimeout(caixaModal, 400); return r; };
+        const s0 = app.handleSaveArtistEvent;
+        app.handleSaveArtistEvent = async function () {
+            const ck = document.getElementById('ae-comissao-paga'); const paga = !!(ck && ck.checked);
+            const sck = document.getElementById('ae-pagto-sinal-ja-pago'); const sinalPago = !!(sck && sck.checked);
+            const antes = new Set((this.data || []).map(d => d.id));
+            const r = await s0.apply(this, arguments);
+            try {
+                if (paga || sinalPago) {
+                    const novo = (this.data || []).find(d => !antes.has(d.id) && d.artistId);
+                    const sh = showDe(novo); const af = sh && sh.artistFinancials;
+                    if (af) {
+                        if (paga) { af.commissionPaid = true; af.commissionPaidDate = hoje(); }
+                        if (sinalPago && af.sinalPaid) af.sinalPaidDate = hoje();
+                        this.saveWithFeedback ? this.saveWithFeedback() : this.save(); this.render();
+                    }
+                }
+            } catch (e) { console.warn(e); }
+            return r;
+        };
+
+        // 2) dentro do evento: marcar comissão recebida
+        app.setCommissionPaid = function (paga) {
+            const s = this.getActiveShow(); if (!s) return;
+            const af = s.artistFinancials || (s.artistFinancials = {});
+            af.commissionPaid = !!paga;
+            af.commissionPaidDate = paga ? (af.commissionPaidDate || hoje()) : '';
+            this.saveWithFeedback ? this.saveWithFeedback() : this.save(); this.render();
+        };
+        app.setCommissionPaidDate = function (d) {
+            const s = this.getActiveShow(); const af = s && s.artistFinancials; if (!af) return;
+            af.commissionPaidDate = d; this.saveWithFeedback ? this.saveWithFeedback() : this.save(); this.render();
+        };
+        const t0 = app.renderArtistFeeAndContractTab;
+        app.renderArtistFeeAndContractTab = function (show) {
+            const html = t0.apply(this, arguments);
+            try {
+                const p = this.getActiveParent(); if (!p || !p.artistId) return html;
+                const af = (show && show.artistFinancials) || {}; const m = this.getArtistFinMetrics(show);
+                const pago = !!af.commissionPaid;
+                const card = '<div class="mb-4 bg-alpha-card border ' + (pago ? 'border-alpha-border' : 'border-alpha-border') + ' rounded-xl p-4 flex flex-wrap items-center gap-3 text-xs">' +
+                    '<div class="flex-1 min-w-[200px]"><span class="block text-[10px] uppercase font-black status-warn">🏢 Comissão Alpha Produções</span>' +
+                    '<b class="text-lg text-alpha-title">' + brl(m.commVal) + '</b> <span class="text-alpha-muted">(' + (m.commPct || 0) + '%)</span></div>' +
+                    '<label class="flex items-center gap-2 cursor-pointer font-bold text-alpha-title"><input type="checkbox" ' + (pago ? 'checked' : '') + ' onchange="app.setCommissionPaid(this.checked)" class="w-4 h-4 accent-alpha-yellow">Comissão recebida</label>' +
+                    (pago ? '<label class="flex items-center gap-2 text-alpha-muted">em <input type="date" value="' + (af.commissionPaidDate || '') + '" onchange="app.setCommissionPaidDate(this.value)" class="h-8 bg-alpha-dark border border-alpha-border rounded-lg px-2 text-alpha-title"></label>' : '') +
+                    '<span class="px-2 py-1 rounded text-[10px] font-bold ' + (pago ? 'badge-pos' : 'badge-warn') + '">' + (pago ? '✅ Comissão paga' + (af.commissionPaidDate ? ' • ' + dBR(af.commissionPaidDate) : '') : '⏳ Comissão a receber') + '</span></div>';
+                return card + html;
+            } catch (e) { console.warn(e); return html; }
+        };
+
+        // 3) dentro do artista (fora dos eventos): recebido x a receber de TODOS os eventos dele
+        function resumoArtista(artId) {
+            let cont = 0, cRec = 0, cFal = 0, kRec = 0, kFal = 0, n = 0;
+            (app.data || []).filter(d => d.artistId === artId).forEach(ev => {
+                const sh = showDe(ev); if (!sh) return; const m = app.getArtistFinMetrics(sh); const af = sh.artistFinancials || {};
+                n++; cont += m.contracted; cRec += m.received; cFal += m.pending;
+                if (af.commissionPaid) kRec += m.commVal; else kFal += m.commVal;
+            });
+            return { cont, cRec, cFal, kRec, kFal, n };
+        }
+        const rdA = app.render;
+        app.render = function () {
+            rdA.apply(this, arguments);
+            try {
+                if (this.view !== 'artist_hub' || this.artistSubView === 'pedidos') return;
+                const c = document.getElementById('main-content'); if (!c || document.getElementById('fin-artista')) return;
+                const grid = c.querySelector('[class*="lg:grid-cols-5"]'); if (!grid) return;
+                const art = this.getActiveArtistObj(); if (!art) return;
+                const R = resumoArtista(art.id);
+                const box = (rot, v, cls, sub) => '<div class="bg-alpha-dark border border-alpha-border rounded-xl p-3.5"><span class="text-[10px] uppercase font-bold text-alpha-muted">' + rot + '</span><div class="text-xl font-extrabold mt-0.5 ' + cls + '">' + brl(v) + '</div><span class="text-[10px] text-alpha-muted">' + sub + '</span></div>';
+                const w = document.createElement('div'); w.id = 'fin-artista'; w.className = 'mb-5';
+                w.innerHTML = '<span class="text-[10px] font-black uppercase text-alpha-muted block mb-2">💰 Resumo de todos os eventos de ' + String(art.name).replace(/</g, '&lt;') + ' (' + R.n + ')</span>' +
+                    '<div class="grid grid-cols-2 gap-3">' +
+                    box('🏢 Comissão recebida', R.kRec, 'status-pos', 'já paga à Alpha') +
+                    box('🏢 Comissão a receber', R.kFal, 'status-warn', 'falta cobrar') + '</div>';
+                grid.after(w);
+            } catch (e) { console.warn(e); }
+        };
+
+        // ---------- 4) data em que o sinal foi pago (para o alerta da comissão) ----------
+        const uf0 = app.updateArtistFinField;
+        if (uf0) app.updateArtistFinField = function (field, val) {
+            if (field === 'sinalPaid') { const s = this.getActiveShow(); const af = s && s.artistFinancials; if (af) af.sinalPaidDate = val ? (af.sinalPaidDate || hoje()) : ''; }
+            return uf0.apply(this, arguments);
+        };
+
+        // ---------- 5) alerta: comissão não recebida ----------
+        const DIAS = 5;
+        const criadoEm = (ev) => { const m = /(\d{13})/.exec(String(ev.id || '')); if (!m) return ''; const d = new Date(Number(m[1])); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+        const maisDias = (iso, n) => { const p = String(iso).split('-').map(Number); const d = new Date(p[0], p[1] - 1, p[2] + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+        function prazoComissao(ev, af) {
+            // sinal agendado para o futuro e ainda não pago: espera o sinal
+            if (!af.sinalPaid && Number(af.sinalValue || 0) > 0 && af.sinalDate && af.sinalDate > hoje()) return '';
+            const cands = [criadoEm(ev), af.sinalPaid ? (af.sinalPaidDate || '') : (af.sinalDate || '')].filter(Boolean).sort();
+            const base = cands[cands.length - 1]; if (!base) return '';
+            return maisDias(base, DIAS);
+        }
+        app.__prazoComissao = prazoComissao;
+        const pa0 = app.getPaymentAlerts;
+        if (pa0) app.getPaymentAlerts = function () {
+            const r = pa0.apply(this, arguments);
+            try {
+                (this.data || []).forEach(ev => {
+                    if (!ev.artistId) return; const sh = showDe(ev); const af = sh && sh.artistFinancials; if (!af || af.commissionPaid) return;
+                    const m = this.getArtistFinMetrics(sh); if (!(m.commVal > 0)) return;
+                    const due = prazoComissao(ev, af); if (!due) return;
+                    const st = this.checkPaymentAlertState(due, false); if (st.status !== 'overdue') return;
+                    r.receber.push({ kind: 'receber', parentId: ev.id, showId: sh.id, artistId: ev.artistId, showTitle: ev.title + ' • ' + (ev.artist || ''), itemDesc: 'COMISSÃO ALPHA (' + (m.commPct || 0) + '%)', who: '', amount: m.commVal, date: due, state: st });
+                });
+                r.receber.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+            } catch (e) { console.warn(e); }
+            return r;
+        };
+
+        return true;
+    }
+    const t = setInterval(() => { if (window.app && window.app.renderArtistFeeAndContractTab && window.app.__livreOn && window.app.getPaymentAlerts) { clearInterval(t); setTimeout(() => { try { if (install()) window.app.render(); } catch (e) { console.error(e); } }, 1200); } }, 1000);
+})();
+</script>
+
 </body>
 </html>
