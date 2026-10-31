@@ -9001,27 +9001,21 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
         }
         (window.__alphaAuthReady || Promise.resolve()).then(ligar);
 
-        /* ---------- botão no menu lateral ---------- */
+        /* ---------- aviso de pedidos novos no item "DJ MOTHÉ" (dentro de Gestão de Artistas) ---------- */
+        const novos = () => (app.sitePedidos || []).filter(x => (x.status || 'novo') === 'novo').length;
         function pintaMenu() {
-            const leads = document.getElementById('side-leads'); if (!leads || !leads.parentNode) return;
-            let b = document.getElementById('side-pedidos');
-            if (!b) {
-                b = document.createElement('button'); b.id = 'side-pedidos'; b.type = 'button';
-                b.setAttribute('onclick', "app.openSitePedidos()");
-                leads.parentNode.insertBefore(b, leads.nextSibling);
-            }
-            b.style.display = pode('view') ? '' : 'none';
-            const n = (app.sitePedidos || []).filter(x => x.status === 'novo').length;
-            b.className = 'w-full text-left px-3.5 py-3 rounded-xl text-xs sm:text-sm flex items-center gap-3 shrink-0 ' + (app.sidebarActive === 'site_pedidos' ? 'font-extrabold btn-primary-alpha shadow-md' : 'font-bold');
-            b.innerHTML = '<span>🌐</span><span class="flex-1">Pedidos do Site</span>' + (n ? '<span class="text-[10px] font-black px-2 py-0.5 rounded-full" style="background:#D9777A;color:#fff">' + n + '</span>' : '');
+            const velho = document.getElementById('side-pedidos'); if (velho) velho.remove();
+            const btn = document.querySelector('#side-artists-wrapper button[onclick="app.openArtistHub(\'' + ART + '\')"]');
+            if (!btn) return;
+            let bd = btn.querySelector('.ped-badge'); const n = pode('view') ? novos() : 0;
+            if (!n) { if (bd) bd.remove(); return; }
+            if (!bd) { bd = document.createElement('span'); bd.className = 'ped-badge'; bd.title = 'Pedidos novos do site'; bd.style.cssText = 'background:#D9777A;color:#fff;font-size:10px;font-weight:900;padding:1px 6px;border-radius:999px;margin-left:6px'; const nome = btn.querySelector('span'); if (nome) nome.after(bd); else btn.appendChild(bd); }
+            bd.textContent = '🌐 ' + n;
         }
+        const origSide = app.renderSidebarArtistsMenu;
+        if (origSide) app.renderSidebarArtistsMenu = function () { const r = origSide.apply(this, arguments); try { pintaMenu(); } catch (e) {} return r; };
 
-        app.openSitePedidos = function () {
-            this.view = 'site_pedidos'; this.sidebarActive = 'site_pedidos';
-            this.activeItemId = null; this.activeShowId = null;
-            this.render();
-            try { window.scrollTo(0, 0); } catch (e) {}
-        };
+        app.openSitePedidos = function () { this.openArtistHub(ART, 'pedidos'); try { window.scrollTo(0, 0); } catch (e) {} };
         app.pedSetF = function (k, v) { this.pedF[k] = v; this.render(); };
 
         /* ---------- tela ---------- */
@@ -9068,12 +9062,24 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                     (edita ? '<button onclick="app.pedDelete(\'' + esc(p.id) + '\')" class="ml-auto text-alpha-muted hover:text-alpha-title text-xs font-bold">🗑️ Excluir</button>' : '') +
                 '</div></div>';
         }
+        function botaoAba(ativo) {
+            const n = novos();
+            return '<button onclick="app.openArtistHub(\'' + ART + '\', \'pedidos\')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ' + (ativo ? 'btn-primary-alpha shadow' : 'btn-secondary-alpha') + '">🌐 Pedidos do Site' + (n ? ' <span style="background:#D9777A;color:#fff;font-size:10px;padding:1px 6px;border-radius:999px;margin-left:4px">' + n + '</span>' : '') + '</button>';
+        }
+        function abas() {
+            const art = (app.artistsRoster || []).find(a => a.id === ART) || { name: 'DJ MOTHÉ' };
+            const b = (sub, label) => '<button onclick="app.openArtistHub(\'' + ART + '\', \'' + sub + '\')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition btn-secondary-alpha">' + label + '</button>';
+            return '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-6 mb-5">' +
+                '<span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded badge-warn">GESTÃO DE ARTISTA EXCLUSIVO • ALPHA PRODUÇÕES</span>' +
+                '<h2 class="text-3xl font-extrabold text-alpha-title mt-1 mb-4">🎧 ' + esc(art.name) + '</h2>' +
+                '<div class="flex flex-wrap gap-2">' + b('events', '📅 Agenda de Eventos') + b('revenues', '💰 Somatório de Receitas & Comissões') + b('history', '📜 Histórico de Eventos') + b('clients', '👥 Base de Clientes & Leads') + botaoAba(true) + '</div></div>';
+        }
         app.renderSitePedidosView = function () {
             const f = this.pedF, all = this.sitePedidos || [], edita = pode('edit');
             const conta = (fn) => all.filter(fn).length;
             const seg = (k, v, label, n) => '<button onclick="app.pedSetF(\'' + k + '\',\'' + v + '\')" class="px-4 py-2 rounded-xl text-xs font-extrabold transition ' + (f[k] === v ? 'btn-primary-alpha shadow-md' : 'btn-secondary-alpha') + '">' + label + (n !== undefined ? ' (' + n + ')' : '') + '</button>';
             const lista = filtrados();
-            return '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-6 mb-5"><div class="flex flex-wrap items-center justify-between gap-4">' +
+            return abas() + '<div class="bg-alpha-card border border-alpha-border rounded-2xl p-6 mb-5"><div class="flex flex-wrap items-center justify-between gap-4">' +
                 '<div><span class="text-xs font-black uppercase text-alpha-gray block">PÁGINA DE PROPOSTA • DJ MOTHÉ</span>' +
                 '<h3 class="text-2xl font-extrabold text-alpha-title">🌐 Pedidos do Site (' + all.length + ')</h3>' +
                 '<p class="text-xs text-alpha-muted mt-1">Cada formulário enviado pela página do Mothé aparece aqui na hora. Atualize o status conforme a conversa no WhatsApp e salve no Banco de Leads.</p></div></div></div>' +
@@ -9119,17 +9125,25 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
             this.render(); pintaMenu();
         };
 
-        /* ---------- encaixe na tela ---------- */
+        /* ---------- encaixe na tela: aba dentro do DJ MOTHÉ ---------- */
         const orig = app.render;
         app.render = function () {
+            if (this.view === 'site_pedidos') { this.view = 'artist_hub'; this.activeArtistId = ART; this.artistSubView = 'pedidos'; this.sidebarActive = 'artist_' + ART; }
             orig.apply(this, arguments);
             try {
                 pintaMenu();
-                if (this.view === 'site_pedidos') {
-                    const main = document.getElementById('main-content');
-                    if (main) main.innerHTML = pode('view') ? this.renderSitePedidosView() : '<div class="p-10 text-center text-alpha-muted">Sem acesso.</div>';
-                    const nav = document.getElementById('breadcrumbs');
-                    if (nav) nav.innerHTML = '<button onclick="app.navigateSidebar(\'home\')" class="hover:text-alpha-title text-alpha-text font-bold">📊 Painel Geral</button><span>/</span><span class="text-alpha-title font-bold">Pedidos do Site</span>';
+                if (this.view !== 'artist_hub' || this.activeArtistId !== ART || !pode('view')) return;
+                const main = document.getElementById('main-content'); if (!main) return;
+                if (this.artistSubView === 'pedidos') {
+                    main.innerHTML = this.renderSitePedidosView();
+                    return;
+                }
+                if (main.querySelector('[data-ped-aba]')) return;
+                const abaCli = main.querySelector('button[onclick*="openArtistHub(\'' + ART + '\', \'clients\')"]');
+                if (abaCli && abaCli.parentNode) {
+                    const w = document.createElement('span'); w.setAttribute('data-ped-aba', '1'); w.style.display = 'contents';
+                    w.innerHTML = botaoAba(false);
+                    abaCli.parentNode.insertBefore(w, abaCli.nextSibling);
                 }
             } catch (e) { console.error(e); }
         };
@@ -9137,7 +9151,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
     }
     const t = setInterval(() => {
         const a = window.app;
-        if (a && a.render && document.getElementById('side-leads') && a.leadArtistName) { clearInterval(t); setTimeout(() => { try { install(window.app); } catch (e) { console.error(e); } }, 1500); }
+        if (a && a.render && a.openArtistHub && a.leadArtistName) { clearInterval(t); setTimeout(() => { try { install(window.app); } catch (e) { console.error(e); } }, 1500); }
     }, 900);
 })();
 </script>
