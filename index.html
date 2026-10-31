@@ -1090,7 +1090,7 @@
 
         function createRevenuesTemplate() {
             return {
-                ticketeiraProvider: 'Sympla', ticketeiraEventId: '', ticketeiraApiKey: '', lastSync: '',
+                ticketeiraProvider: 'Lotoupass', ticketeiraEventId: '', ticketeiraApiKey: '', lastSync: '',
                 grupos: [
                     { grupo: "1. BILHETERIA / VENDA DE INGRESSOS (API TICKETEIRA)", itens: [{ cod: "R1.1", desc: "1º LOTE PISTA PROMO (MEIA)", lote: "1º Lote", qtd: 300, unitario: 40, recebido: 12000, origem: "Sympla" }, { cod: "R1.2", desc: "1º LOTE PISTA (INTEIRA)", lote: "1º Lote", qtd: 115, unitario: 80, recebido: 9200, origem: "Sympla" }, { cod: "R1.3", desc: "ÁREA VIP / CADEIRA PREMIUM", lote: "Lote Único", qtd: 100, unitario: 90, recebido: 9000, origem: "Sympla" }] },
                     { grupo: "2. PATROCINADORES & COTAS DE APOIO", itens: [{ cod: "R2.1", desc: "COTA PATROCÍNIO MASTER LOCAL", lote: "Cota Master", qtd: 1, unitario: 13000, recebido: 13000, origem: "Contrato Direto" }] },
@@ -2316,7 +2316,7 @@
                             <button onclick="app.syncTicketeiraApi()" class="btn-secondary-alpha px-4 py-2 rounded-xl text-xs">🔄 Sincronizar Vendas via API Agora</button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                            <select onchange="app.updateTicketeiraConfig('ticketeiraProvider', this.value)" class="bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold"><option value="Sympla">Sympla API</option><option value="Eventim">Eventim</option><option value="Ingresse">Ingresse</option><option value="Outra">Outra / Webhook</option></select>
+                            <select onchange="app.updateTicketeiraConfig('ticketeiraProvider', this.value)" class="bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold">${(() => { const atual = (!rec.ticketeiraProvider || (rec.ticketeiraProvider === 'Sympla' && !rec.ticketeiraEventId && !rec.ticketeiraApiKey)) ? 'Lotoupass' : rec.ticketeiraProvider; return [['Lotoupass', 'Lotoupass'], ['Sympla', 'Sympla API'], ['Eventim', 'Eventim'], ['Ingresse', 'Ingresse'], ['Outra', 'Outra / Webhook']].map(o => '<option value="' + o[0] + '"' + (atual === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join(''); })()}</select>
                             <input type="text" value="${rec.ticketeiraEventId || ''}" onchange="app.updateTicketeiraConfig('ticketeiraEventId', this.value)" placeholder="ID do Evento na Ticketeira" class="bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-mono">
                             <input type="text" value="${rec.ticketeiraApiKey || ''}" onchange="app.updateTicketeiraConfig('ticketeiraApiKey', this.value)" placeholder="Token da API / URL Webhook" class="bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-text font-mono">
                         </div>
@@ -6180,7 +6180,7 @@ window.addEventListener('load', () => {
         ledSize: 'Ex: 8,00m x 4,00m (P3.9 Outdoor)',
         roomName: 'Ex: Camarim do artista', item: 'Ex: 01 sofá de 3 lugares, espelho, arara com cabides', notes: 'Ex: Climatizado',
         cod: 'Ex: 1.1', desc: 'Ex: Locação do espaço', empresa: 'Ex: Nome do fornecedor', detalhes: 'Ex: Observações do item',
-        lote: 'Ex: 1º Lote', origem: 'Ex: Sympla / Bilheteria',
+        lote: 'Ex: 1º Lote', origem: 'Ex: Lotoupass / Bilheteria',
         unitario: '0,00', pago: '0,00', valorSinal: '0,00', recebido: '0,00', qtd: '0',
         contractedValue: '0,00', commissionValue: '0,00', sinalValue: '0,00', saldoValue: '0,00', value: '0,00',
         moment: 'Ex: Música de entrada (noivos / debutante / abertura)', song: 'Ex: Nome da música / artista',
@@ -6536,7 +6536,14 @@ window.addEventListener('load', () => {
     function install(app, full) {
         /* ---------- Leads: regras ---------- */
         app.leadGroup = function (c) { return REL.indexOf(c.category) !== -1 ? 'Religioso' : 'Social'; };
-        app.isAutoLead = function (c) { return AUTO_RE.test((c && c.notes) || ''); };
+        app.isAutoLead = function (c) {
+            if (!c) return false; const n = String(c.notes || '');
+            if (AUTO_RE.test(n) || /^Contratante de /.test(n)) return true;
+            if (c.auto) return false;
+            // lead antigo cujo "nome" é na verdade o título de um evento (ex.: "Casamento em Miraí - MG")
+            const o = String(c.org || '').toLowerCase().trim();
+            return !!o && (this.data || []).some(ev => ev && ev.artistId && String(ev.title || '').toLowerCase().trim() === o);
+        };
         app.leadOwner = function (c) {
             if (c.artistId) return c.artistId;
             const ref = String(c.artistRef || '').trim().toUpperCase();
@@ -6567,7 +6574,7 @@ window.addEventListener('load', () => {
             return '<tr class="hover:bg-alpha-dark/50">' +
                 '<td class="p-3"><span class="' + (grp === 'Religioso' ? 'badge-info' : 'badge-warn') + ' px-2 py-0.5 rounded text-[10px] font-bold">' + (grp === 'Religioso' ? '⛪ Religioso' : '💍 Social') + '</span><div class="text-[10px] text-alpha-muted mt-1">' + esc(c.category) + '</div></td>' +
                 '<td class="p-3 font-extrabold text-alpha-title text-sm">' + esc(c.org) + '</td>' +
-                '<td class="p-3 font-bold text-alpha-title">' + esc(c.contact) + '</td>' +
+                '<td class="p-3 font-bold text-alpha-title">' + esc(c.contact) + (c.doc ? '<div class="text-[10px] text-alpha-muted font-semibold mt-0.5">' + (String(c.doc).replace(/\D/g, '').length > 11 ? 'CNPJ ' : 'CPF ') + esc(c.doc) + '</div>' : '') + '</td>' +
                 '<td class="p-3">' + (wa ? '<a href="' + wa + '" target="_blank" class="btn-secondary-alpha status-pos px-2.5 py-1 rounded text-[11px]">💬 ' + esc(c.whatsapp) + '</a>' : esc(c.whatsapp || '-')) + '</td>' +
                 '<td class="p-3 text-alpha-title">📍 ' + esc(c.city || '-') + (c.state ? ' - ' + esc(c.state) : '') + '</td>' +
                 (showArtist ? '<td class="p-3 text-alpha-text font-semibold">' + esc(app.leadArtistName(app.leadOwner(c))) + '</td>' : '') +
@@ -8841,10 +8848,48 @@ window.addEventListener('load', () => {
     }
 
     /* ---------- calendário ---------- */
+    /* cores fixas por grupo: DJ Mothé social / religioso, cada artista, cada turnê e cada evento único */
+    const COR_FIXA = { 'art:art_dj_mothe:social': '#7c3aed', 'art:art_dj_mothe:rel': '#2563eb', 'art:art_nc_music': '#059669' };
+    const PALETA = ['#ea580c', '#ca8a04', '#dc2626', '#0891b2', '#65a30d', '#b45309', '#4f46e5', '#0f766e', '#a16207', '#475569', '#0e7490', '#9a3412'];   // sem rosa
+    const SOCIAL_T = ['Casamento', 'XV Anos', 'Aniversário'];
+    function grupoCor(it, s) {
+        if (it.artistId) {
+            const artObj = (app.artistsRoster || []).find(a => a.id === it.artistId) || null;
+            const art = (artObj || {}).name || it.artist || 'Artista';
+            if (it.artistId === 'art_dj_mothe') {
+                const soc = SOCIAL_T.indexOf(it.eventType || ((s && s.socialDetails) || {}).eventType || '') !== -1;
+                return soc ? { key: 'art:art_dj_mothe:social', label: 'DJ Mothé • Eventos sociais', ord: 1 } : { key: 'art:art_dj_mothe:rel', label: 'DJ Mothé • Igrejas / religiosos', ord: 2 };
+            }
+            return { key: 'art:' + it.artistId, label: art, ord: 3, dono: artObj, tipoDono: 'artista' };
+        }
+        if (it.kind === 'tour') return { key: 'tour:' + it.id, label: 'Turnê: ' + (it.title || ''), ord: 4, dono: it, tipoDono: 'evento' };
+        return { key: 'evt:' + it.id, label: 'Evento único: ' + (it.title || ''), ord: 5, dono: it, tipoDono: 'evento' };
+    }
+    // a cor fica GRAVADA na turnê / evento único / artista na primeira vez; depois é sempre a mesma
+    let corPendente = { ev: false, art: false }, corTimer = null;
+    function corDe(g) {
+        if (COR_FIXA[g.key]) return COR_FIXA[g.key];
+        const d = g.dono;
+        if (d && d.calColor) return d.calColor;
+        const usadas = new Set(Object.values(COR_FIXA));
+        ((app.data || [])).forEach(x => { if (x && x.calColor) usadas.add(x.calColor); });
+        ((app.artistsRoster || [])).forEach(x => { if (x && x.calColor) usadas.add(x.calColor); });
+        let cor = PALETA.find(c => !usadas.has(c));
+        if (!cor) { let h = 0; for (let i = 0; i < g.key.length; i++) h = (h * 31 + g.key.charCodeAt(i)) >>> 0; cor = PALETA[h % PALETA.length]; }
+        if (d) {
+            d.calColor = cor; if (g.tipoDono === 'artista') corPendente.art = true; else corPendente.ev = true;
+            clearTimeout(corTimer);
+            corTimer = setTimeout(() => {
+                try { if (corPendente.ev && app.save) app.save(); if (corPendente.art && window.saveArtistRosterToCloud) window.saveArtistRosterToCloud(); } catch (e) {}
+                corPendente = { ev: false, art: false };
+            }, 1500);
+        }
+        return cor;
+    }
     function calEntries() {   // só a data de cada evento (a mesma data cadastrada no evento)
         const E = [];
-        rows().forEach(({ it, s, name }) => { if (!parse(s.date)) return; const sp = s.specs || {};
-            E.push({ parentId: it.id, showId: s.id, tour: it.kind === 'tour' ? it.title : '', evento: name, artistId: it.artistId || '', date: s.date, time: sp.horarioShow || '', title: name, cat: 'Evento', target: 'specs', resp: '' }); });
+        rows().forEach(({ it, s, name }) => { if (!parse(s.date)) return; const sp = s.specs || {}; const g = grupoCor(it, s);
+            E.push({ parentId: it.id, showId: s.id, tour: it.kind === 'tour' ? it.title : '', evento: name, artistId: it.artistId || '', date: s.date, time: sp.horarioShow || '', title: name, cat: 'Evento', target: 'specs', resp: '', gKey: g.key, gLabel: g.label, gOrd: g.ord, cor: corDe(g) }); });
         return E.sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')));
     }
     function conflictsFor(entries) {   // só afirma conflito quando há dado suficiente
@@ -8863,7 +8908,7 @@ window.addEventListener('load', () => {
         const E = all.filter(e => !c.tour || e.evento === c.tour);
         const setC = (k) => "app.cenSet('c',Object.assign(" + JSON.stringify(c) + ",{" + k + ":this.value}))";
         const cur = CEN.cur; const colr = { 'Evento': 'bg-amber-600', 'Apresentação': 'bg-amber-600', 'Viagem': 'bg-sky-700', 'Day sheet': 'bg-violet-700', 'Tarefa': 'bg-emerald-700', 'Pagamento': 'bg-red-700' };
-        const chip = (e) => '<div onclick="app.cenGo(\'' + esc(e.parentId) + '\',\'' + esc(e.showId) + '\',\'' + esc(e.target) + '\',\'' + esc(e.artistId) + '\')" class="cursor-pointer ' + (colr[e.cat] || 'bg-slate-700') + ' text-white rounded px-1 py-0.5 mb-0.5 text-[10px] leading-tight break-words">' + (e.time ? esc(e.time) + ' ' : '') + esc(e.title) + '</div>';
+        const chip = (e) => '<div onclick="app.cenGo(\'' + esc(e.parentId) + '\',\'' + esc(e.showId) + '\',\'' + esc(e.target) + '\',\'' + esc(e.artistId) + '\')" class="cursor-pointer ' + (e.cor ? '' : (colr[e.cat] || 'bg-slate-700')) + ' text-white rounded px-1 py-0.5 mb-0.5 text-[10px] leading-tight break-words" style="' + (e.cor ? 'background:' + e.cor : '') + '" title="' + esc(e.gLabel || '') + '">' + (e.time ? esc(e.time) + ' ' : '') + esc(e.title) + '</div>';
         let title = '', grid = '';
         const dayBox = (d, big) => { const s = ymd(d); const L = E.filter(e => e.date === s); return '<div class="border border-alpha-border/60 rounded p-1 ' + (s === todayStr() ? 'bg-alpha-hover' : '') + ' min-h-[' + (big ? '90' : '64') + 'px]"><button class="text-[10px] font-bold text-alpha-muted" onclick="app.calDay(\'' + s + '\')">' + WD[d.getDay()] + ' ' + d.getDate() + '</button>' + L.slice(0, big ? 50 : 4).map(chip).join('') + (!big && L.length > 4 ? '<div class="text-[10px] text-alpha-muted">+' + (L.length - 4) + ' mais</div>' : '') + '</div>'; };
         let range = [];
@@ -8881,6 +8926,13 @@ window.addEventListener('load', () => {
             '<button onclick="app.calNav(-1)" class="btn-secondary-alpha px-3 py-1.5 rounded-lg text-xs">◀</button><button onclick="app.calToday()" class="btn-secondary-alpha px-3 py-1.5 rounded-lg text-xs">Hoje</button><button onclick="app.calNav(1)" class="btn-secondary-alpha px-3 py-1.5 rounded-lg text-xs">▶</button><b class="text-alpha-title capitalize">' + esc(title) + '</b></div>' +
             '<div class="flex flex-wrap gap-2 mb-3">' + sel('c1', [['', 'Todos os eventos/turnês']].concat(tours.map(x => [x, x])), c.tour, setC('tour')) + '</div>' +
             (confs.length ? '<div class="mb-3 space-y-1">' + confs.map(x => '<div class="rounded-lg p-2 text-[11px] ' + (x.sev === 'conflito' ? 'bg-red-900/40 border border-red-700' : 'bg-alpha-dark border border-alpha-border') + '">' + (x.sev === 'conflito' ? '⛔ Conflito: ' : 'ℹ️ ') + esc(fmt(x.date)) + ' — ' + esc(x.txt) + '</div>').join('') + '</div>' : '') + grid +
+            (function () {   // legenda das cores
+                const vistos = {}; all.forEach(e => { if (e.gKey && !vistos[e.gKey]) vistos[e.gKey] = e; });
+                const L = Object.keys(vistos).map(k => vistos[k]).sort((a, b) => a.gOrd - b.gOrd || a.gLabel.localeCompare(b.gLabel, 'pt-BR'));
+                if (!L.length) return '';
+                return '<div class="mt-4 pt-3 border-t border-alpha-border"><div class="text-[10px] font-black uppercase text-alpha-muted mb-2">🎨 Legenda das cores</div><div class="flex flex-wrap gap-x-4 gap-y-2">' +
+                    L.map(e => '<span class="flex items-center gap-1.5 text-[11px] text-alpha-text"><span style="width:14px;height:14px;border-radius:4px;background:' + e.cor + ';display:inline-block;flex:none"></span>' + esc(e.gLabel) + '</span>').join('') + '</div></div>';
+            })() +
             '<div class="text-[10px] text-alpha-muted mt-3">Mostra apenas a data de cada evento, exatamente como está cadastrada no evento. Continua existindo o atalho para o Google Calendar e a exportação .ics (dentro de cada turnê/dia). Não há sincronização automática de volta com o Google Calendar. </div></div>';
     }
     const t = setInterval(() => { if (window.app && app.render && app.getPaymentAlerts && app.calcShowFinancialSummary && app.openAlertTarget) { clearInterval(t); try { install(window.app); app.render(); } catch (e) { console.error(e); } } }, 800);
@@ -9044,9 +9096,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                         id: 'cli_site_' + p.id, category: 'Prefeitura', artistId: ART, artistRef: app.leadArtistName ? app.leadArtistName(ART) : 'DJ MOTHÉ',
                         org: c.prefeitura || p.nome || 'Prefeitura', contact: (p.nome || '') + (c.cargo ? ' (' + c.cargo + ')' : ''), whatsapp: p.whatsapp || '',
                         city: loc.city, state: loc.state,
-                        notes: '🏛️ Pedido do site em ' + quando(p.criadoEm) + ' • Atendimento: Jair Produções' +
-                            (c.evento ? '\nEvento: ' + c.evento : '') + (p.dataEvento ? '\nData: ' + dataBR(p.dataEvento) + (p.horario ? ' às ' + p.horario : '') : '') +
-                            (c.publico ? '\nPúblico estimado: ' + c.publico : '') + '\nOrigem: ' + (p.origem || 'Link direto')
+                        notes: 'Origem: pedido de prefeitura pelo site (atendimento Jair Produções)' + (c.evento ? ' • Evento: ' + c.evento : '') + ' • ' + quando(p.criadoEm).split(' ')[0], refs: ['ped:' + p.id], auto: true
                     };
                     app.artistClients = app.artistClients || [];
                     if (!app.artistClients.some(x => x.id === lead.id)) app.artistClients.unshift(lead);
@@ -9216,7 +9266,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                 ? '<div class="mt-3 p-3 rounded-xl bg-alpha-dark border border-alpha-border text-xs"><span class="text-alpha-muted">Pacote:</span> <b class="text-alpha-title uppercase">' + esc(p.pacote) + '</b>' + (p.robos ? ' + ' + esc(p.robos) + ' robô(s) extra(s)' : '') + (p.total ? ' • <b class="text-alpha-yellow">R$ ' + brl(p.total) + '</b> + logística' : '') + '</div>' : '';
             const sel = '<select ' + (edita ? '' : 'disabled ') + 'onchange="app.pedSetStatus(\'' + esc(p.id) + '\',this.value)" class="bg-alpha-dark border border-alpha-border rounded-lg px-2 py-1.5 text-xs font-bold text-alpha-title">' +
                 STATUS.map(s => '<option value="' + s[0] + '"' + ((p.status || 'novo') === s[0] ? ' selected' : '') + '>' + s[1] + '</option>').join('') + '</select>';
-            const noBanco = p.leadId && (app.artistClients || []).some(x => x.id === p.leadId);
+            const noBanco = (p.leadId && (app.artistClients || []).some(x => x.id === p.leadId)) || !!(window.__alphaLeadDoPedido && window.__alphaLeadDoPedido(p.id));
             const temEvento = p.eventoId && (app.data || []).some(d => d.id === p.eventoId);
             const fx = fichaDe(p);
             const aguardando = p.status === 'enviado';
@@ -9769,6 +9819,321 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
         return true;
     }
     const t = setInterval(() => { if (window.app && window.app.renderArtistFeeAndContractTab && window.app.__livreOn && window.app.getPaymentAlerts) { clearInterval(t); setTimeout(() => { try { if (install()) window.app.render(); } catch (e) { console.error(e); } }, 1200); } }, 1000);
+})();
+</script>
+
+<script id="alpha-dj-escalado">
+/* ===== DJ Mothé: quem vai tocar no evento (o próprio DJ Mothé ou um DJ da equipe) ===== */
+(function () {
+    const ART = 'art_dj_mothe';
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const showDe = (it) => it ? (it.kind === 'single' ? it.show : (it.shows || []).find(s => s.id === (window.app || {}).activeShowId) || (it.shows || [])[0]) : null;
+    const ehMothe = (n) => /moth[eé]/i.test(String(n || ''));
+
+    function djsDaEquipe() {
+        const art = (window.app.artistsRoster || []).find(a => a.id === ART) || {};
+        // só quem tem "DJ" na FUNÇÃO cadastrada na equipe do Mothé (e não é o próprio Mothé)
+        return (art.crewRoster || []).filter(m => m && m.name && !ehMothe(m.name) && /\bdj\b/i.test(String(m.role || '')));
+    }
+    function opcoes(sel) {
+        const v = sel || {}; const atual = v.tipo === 'equipe' ? (v.id || '') : (v.tipo === 'outro' ? '__outro' : '__mothe');
+        return '<option value="__mothe"' + (atual === '__mothe' ? ' selected' : '') + '>🎧 DJ Mothé (ele mesmo)</option>' +
+            djsDaEquipe().map(m => '<option value="' + esc(m.id) + '"' + (atual === m.id ? ' selected' : '') + '>🎧 ' + esc(m.name) + ' (equipe)</option>').join('') +
+            '<option value="__outro"' + (atual === '__outro' ? ' selected' : '') + '>✏️ Outro DJ (digitar o nome)</option>';
+    }
+    function lerEscolha(valor, nomeOutro) {
+        if (!valor || valor === '__mothe') return { tipo: 'mothe', id: '', nome: 'DJ Mothé' };
+        if (valor === '__outro') { const n = String(nomeOutro || '').trim(); return n ? { tipo: 'outro', id: '', nome: n } : { tipo: 'mothe', id: '', nome: 'DJ Mothé' }; }
+        const m = djsDaEquipe().find(x => x.id === valor);
+        return m ? { tipo: 'equipe', id: m.id, nome: m.name, whatsapp: m.whatsapp || '' } : { tipo: 'mothe', id: '', nome: 'DJ Mothé' };
+    }
+    const rotulo = (d) => (!d || d.tipo === 'mothe') ? 'DJ Mothé' : d.nome + (d.tipo === 'equipe' ? ' (equipe)' : '');
+
+    function install() {
+        const app = window.app;
+        if (!app || !app.openArtistEventModal || !app.handleSaveArtistEvent || app.__djEsc) return false;
+        app.__djEsc = true;
+
+        // 1) no cadastro do evento
+        function caixa(artistId) {
+            const velho = document.getElementById('ae-dj-box');
+            if (artistId !== ART) { if (velho) velho.remove(); return; }
+            const m = document.getElementById('artist-event-modal'); const form = m && m.querySelector('form'); if (!form) return;
+            const html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-alpha-dark p-3 rounded-xl border border-alpha-border">' +
+                '<div><label class="block text-[10px] font-bold uppercase status-warn mb-1">🎧 Quem vai tocar neste evento? *</label>' +
+                '<select id="ae-dj-sel" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title font-bold">' + opcoes(null) + '</select></div>' +
+                '<div id="ae-dj-outro-box" style="display:none"><label class="block text-[10px] font-bold uppercase text-alpha-text mb-1">Nome do DJ</label>' +
+                '<input type="text" id="ae-dj-outro" placeholder="Ex: DJ Fulano" class="w-full bg-alpha-card border border-alpha-border rounded-lg px-3 py-2 text-alpha-title"></div></div>';
+            let box = velho;
+            if (!box) { box = document.createElement('div'); box.id = 'ae-dj-box'; const ref = form.querySelector('.grid'); if (ref && ref.nextSibling) form.insertBefore(box, ref.nextSibling); else form.insertBefore(box, form.firstChild); }
+            box.innerHTML = html;
+            document.getElementById('ae-dj-sel').addEventListener('change', (e) => { document.getElementById('ae-dj-outro-box').style.display = e.target.value === '__outro' ? '' : 'none'; });
+        }
+        const o0 = app.openArtistEventModal;
+        app.openArtistEventModal = function (artistId) {
+            const r = o0.apply(this, arguments);
+            const id = artistId || this.activeArtistId;
+            setTimeout(() => caixa(id), 60);
+            return r;
+        };
+        const s0 = app.handleSaveArtistEvent;
+        app.handleSaveArtistEvent = async function () {
+            const sel = document.getElementById('ae-dj-sel'); const escolha = sel ? lerEscolha(sel.value, (document.getElementById('ae-dj-outro') || {}).value) : null;
+            const antes = new Set((this.data || []).map(d => d.id));
+            const r = await s0.apply(this, arguments);
+            try {
+                if (escolha) {
+                    const novo = (this.data || []).find(d => !antes.has(d.id) && d.artistId === ART);
+                    const sh = novo && (novo.kind === 'single' ? novo.show : (novo.shows || [])[0]);
+                    if (sh) { sh.djEscalado = escolha; (this.saveWithFeedback || this.save).call(this); this.render(); }
+                }
+            } catch (e) { console.warn(e); }
+            return r;
+        };
+
+        // 2) dentro do evento: ver e trocar quem vai tocar
+        app.setDjEscalado = function (valor) {
+            const s = this.getActiveShow(); if (!s) return;
+            let nome = '';
+            if (valor === '__outro') { nome = prompt('Nome do DJ que vai tocar:', (s.djEscalado && s.djEscalado.tipo === 'outro') ? s.djEscalado.nome : '') || ''; if (!nome.trim()) { this.render(); return; } }
+            s.djEscalado = lerEscolha(valor, nome);
+            (this.saveWithFeedback || this.save).call(this); this.render();
+        };
+        const rd0 = app.render;
+        app.render = function () {
+            rd0.apply(this, arguments);
+            try {
+                const c = document.getElementById('main-content'); if (!c) return;
+                // dentro do evento
+                if (this.view === 'show') {
+                    const p = this.getActiveParent(); if (!p || p.artistId !== ART || document.getElementById('dj-esc-bar')) return;
+                    const s = this.getActiveShow(); if (!s) return;
+                    const d = s.djEscalado; const outro = d && d.tipo !== 'mothe';
+                    const bar = document.createElement('div'); bar.id = 'dj-esc-bar'; bar.className = 'mb-3 flex flex-wrap items-center gap-3 p-3 rounded-xl border border-alpha-border bg-alpha-card text-xs no-print';
+                    bar.innerHTML = '<span class="font-black uppercase text-[10px] status-warn">🎧 Quem vai tocar</span>' +
+                        '<select onchange="app.setDjEscalado(this.value)" class="bg-alpha-dark border border-alpha-border rounded-lg px-3 py-1.5 text-alpha-title font-bold">' + opcoes(d) + '</select>' +
+                        (outro ? '<span class="px-2 py-1 rounded text-[10px] font-bold badge-warn">Não é o DJ Mothé</span>' : '') +
+                        (d && d.whatsapp ? '<a href="https://wa.me/55' + String(d.whatsapp).replace(/\D/g, '').replace(/^55/, '') + '" target="_blank" class="btn-secondary-alpha status-pos px-2.5 py-1 rounded text-[11px] font-bold">💬 ' + esc(d.whatsapp) + '</a>' : '');
+                    const ref = document.getElementById('a1200-btns');
+                    if (ref && ref.parentNode === c) ref.after(bar); else c.insertBefore(bar, c.firstChild);
+                }
+                // nos cards da agenda do DJ Mothé
+                if (this.view === 'artist_hub' && this.activeArtistId === ART) {
+                    (this.data || []).filter(ev => ev.artistId === ART).forEach(ev => {
+                        const sh = ev.kind === 'single' ? ev.show : (ev.shows || [])[0]; if (!sh) return;
+                        const h = c.querySelector('h3[onclick="app.openShow(\'' + ev.id + '\', \'' + sh.id + '\')"]'); if (!h || h.parentNode.querySelector('.dj-tag')) return;
+                        const t = document.createElement('div'); const d = sh.djEscalado; const outro = d && d.tipo !== 'mothe';
+                        t.className = 'dj-tag text-[11px] font-bold mt-1 ' + (outro ? 'status-warn' : 'text-alpha-muted');
+                        t.textContent = '🎧 ' + rotulo(d);
+                        h.parentNode.after ? h.parentNode.after(t) : h.parentNode.appendChild(t);
+                    });
+                }
+            } catch (e) { console.warn(e); }
+        };
+        return true;
+    }
+    const t = setInterval(() => { if (window.app && window.app.openArtistEventModal && window.app.handleSaveArtistEvent && window.app.__comPaga) { clearInterval(t); setTimeout(() => { try { if (install()) window.app.render(); } catch (e) { console.error(e); } }, 800); } }, 1000);
+})();
+</script>
+
+<script id="alpha-leads-auto">
+/* ===== Banco de Leads automático (todos os artistas) =====
+   Todo cliente que entra em contato vira lead, só com os dados básicos:
+   - pedidos do site (social e religioso; prefeitura já ia direto para os leads)
+   - links do site enviados pela agenda
+   - eventos cadastrados no sistema (de qualquer artista), inclusive os antigos
+   Igreja / empresa: nome da instituição + nome do responsável que fez contato.
+   Cadastro manual continua disponível (ex.: fornecedores). */
+(function () {
+    const CAT_EVENTO = { 'Evento em Igreja': 'Igreja', 'Acampamentos': 'Acampamento', 'Prefeitura': 'Prefeitura', 'Casamento': 'Casamento / Noivos', 'XV Anos': 'Debutante / XV Anos', 'Aniversário': 'Aniversariante', 'Outros': 'Outros' };
+    const CAT_SITE = { 'Casamento': 'Casamento / Noivos', 'XV anos': 'Debutante / XV Anos', 'Aniversário': 'Aniversariante', 'Formatura': 'Formatura', 'Outro': 'Outros', 'Culto': 'Igreja', 'Conferência': 'Igreja', 'Acampamento': 'Acampamento' };
+    const REL = ['Igreja', 'Acampamento', 'Prefeitura'];
+    const dig = (t) => String(t || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+    const low = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+    const hojeBR = () => new Date().toLocaleDateString('pt-BR');
+    const dBR = (d) => { if (!d) return ''; const p = String(d).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : d; };
+    const fmtDoc = (d) => { const n = String(d || '').replace(/\D/g, ''); if (n.length === 11) return n.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); if (n.length === 14) return n.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5'); return ''; };
+    const semProd = (t) => String(t || '').replace(/\s*\(Prod:[^)]*\)\s*$/i, '').trim();
+    const cidadeUF = (t) => { let c = String(t || '').trim(), u = ''; const m = /^(.*?)[\s,\-\/]+([A-Za-z]{2})$/.exec(c); if (m) { c = m[1].trim(); u = m[2].toUpperCase(); } return { c, u }; };
+
+    const art0 = (app, id) => { const a = (app.artistsRoster || []).find(x => x.id === id); return a ? a.name : 'artista'; };
+    function fontes(app) {
+        const L = [];
+        // 1) eventos de artistas
+        (app.data || []).forEach(ev => {
+            if (!ev || !ev.artistId) return;
+            (ev.kind === 'single' ? [ev.show] : (ev.shows || [])).forEach(s => {
+                if (!s) return;
+                const cat = CAT_EVENTO[ev.eventType || (s.socialDetails || {}).eventType] || 'Outros';
+                // o lead é a PESSOA que fez contato (noiva, aniversariante, cerimonialista, pastor...), nunca o evento
+                const contato = semProd(s.produtorLocal);
+                const cd = s.contractData || {};
+                const rel = REL.indexOf(cat) !== -1;
+                const org = rel ? (cd.nome || '') : (contato || cd.nome || '');
+                if (!contato && !cd.nome) return;
+                L.push({ ref: 'ev:' + ev.id + ':' + s.id, artistId: ev.artistId, category: cat, org: org || contato, contact: contato || cd.nome || '', doc: fmtDoc(cd.doc), whatsapp: s.telefoneLocal || '', city: s.city || '', state: s.state || s.stateUf || '',
+                    nota: 'Origem: contratou ' + (art0(app, ev.artistId)) + (s.date ? ' para ' + dBR(s.date) : '') });
+            });
+        });
+        // 2) pedidos do site e links enviados
+        (app.sitePedidos || []).forEach(p => {
+            if (!p || p.tipoEvento === 'prefeitura') return;
+            const c = p.campos || {}; const f = (p.fichaId && app.siteFichas && app.siteFichas[p.fichaId] && app.siteFichas[p.fichaId].campos) || {};
+            const rel = p.tipoEvento === 'religioso';
+            const cat = rel ? (CAT_SITE[c.tipo] || 'Igreja') : (CAT_SITE[f.tipoEvento || c.tipo] || 'Outros');
+            const loc = f.cidade ? { c: f.cidade, u: String(f.uf || '').toUpperCase() } : cidadeUF(p.cidade);
+            const nome = f.responsavel || f.nomeCompleto || p.nome || '';
+            L.push({ ref: 'ped:' + p.id, artistId: p.artistId || 'art_dj_mothe', category: cat,
+                org: rel ? (f.razaoSocial || c.organizacao || nome) : nome, contact: nome, doc: fmtDoc(f.cpf || f.cnpj), whatsapp: f.telefone || p.whatsapp || '', city: loc.c, state: loc.u,
+                nota: 'Origem: ' + (p.status === 'enviado' || p.viaLink ? 'link do site enviado pela agenda' : 'pedido pelo site' + (p.origem ? ' (' + p.origem + ')' : '')) });
+        });
+        return L;
+    }
+
+    function acha(app, f) {
+        const lista = (app.artistClients || []).filter(x => !(app.isAutoLead && app.isAutoLead(x)));
+        const porRef = lista.find(x => (x.refs || []).indexOf(f.ref) !== -1 || x.id === 'cli_' + f.ref.replace(/[^a-zA-Z0-9_]/g, '_'));
+        if (porRef) return porRef;
+        const w = dig(f.whatsapp);
+        if (w.length >= 10) { const m = lista.find(x => (x.artistId || '') === f.artistId && dig(x.whatsapp) === w); if (m) return m; }
+        if (f.org && f.city) { const m = lista.find(x => (x.artistId || '') === f.artistId && low(x.org) === low(f.org) && low(x.city) === low(f.city)); if (m) return m; }
+        return null;
+    }
+
+    let rodando = false, agendado = null;
+    async function sincroniza() {
+        const app = window.app; if (!app || rodando || !window.firebaseDb || !window.saveArtistClientToCloud) return;
+        if (!window.cloudLoadedSafe && !(app.artistClients || []).length) return;
+        const p = app.perm; const pode = (art) => !p || p.admin || p.can('artist:' + art, 'edit');
+        rodando = true;
+        try {
+            const salvar = [];
+            fontes(app).forEach(f => {
+                if (!pode(f.artistId)) return;
+                const ex = acha(app, f);
+                if (ex) {
+                    let mudou = false;
+                    if ((ex.refs || []).indexOf(f.ref) === -1) { ex.refs = (ex.refs || []).concat(f.ref); mudou = true; }
+                    [['contact', f.contact], ['doc', f.doc], ['whatsapp', f.whatsapp], ['city', f.city], ['state', f.state]].forEach(([k, v]) => { if (v && !String(ex[k] || '').trim()) { ex[k] = v; mudou = true; } });
+                    if (mudou) salvar.push(ex);
+                    return;
+                }
+                const art = (app.artistsRoster || []).find(a => a.id === f.artistId);
+                const lead = { id: 'cli_' + f.ref.replace(/[^a-zA-Z0-9_]/g, '_'), category: f.category, artistId: f.artistId, artistRef: art ? art.name : '',
+                    org: String(f.org || '').slice(0, 120), contact: String(f.contact || '').slice(0, 120), whatsapp: String(f.whatsapp || '').slice(0, 40),
+                    doc: f.doc || '', city: f.city || '', state: String(f.state || '').toUpperCase().slice(0, 2), notes: f.nota + ' • ' + hojeBR(), refs: [f.ref], auto: true };
+                app.artistClients = app.artistClients || []; app.artistClients.unshift(lead); salvar.push(lead);
+            });
+            for (const l of salvar) { try { await window.saveArtistClientToCloud(l); } catch (e) {} }
+            if (salvar.length) { try { app.saveLocalOnly && app.saveLocalOnly(); } catch (e) {} if (app.view === 'leads' || (app.view === 'artist_hub' && app.artistSubView === 'clients')) app.render(); }
+        } finally { rodando = false; }
+    }
+    function agenda() { clearTimeout(agendado); agendado = setTimeout(sincroniza, 2500); }
+
+    function install() {
+        const app = window.app; if (!app || app.__leadsAuto) return false; app.__leadsAuto = true;
+        const r0 = app.render; app.render = function () { const r = r0.apply(this, arguments); agenda(); return r; };
+        const s0 = app.save; if (s0) app.save = function () { const r = s0.apply(this, arguments); agenda(); return r; };
+        // pedidos: mostrar "No Banco de Leads" quando o lead automático já existe
+        window.__alphaLeadDoPedido = (pid) => (app.artistClients || []).find(x => (x.refs || []).indexOf('ped:' + pid) !== -1);
+        setInterval(agenda, 60000);
+        agenda();
+        return true;
+    }
+    const t = setInterval(() => { if (window.app && window.app.render && window.app.leadArtistName && window.saveArtistClientToCloud) { clearInterval(t); (window.__alphaAuthReady || Promise.resolve()).then(() => setTimeout(install, 4000)); } }, 1000);
+})();
+</script>
+
+<script id="alpha-leads-export">
+/* ===== Exportar Banco de Leads em Excel ou PDF (todos os leads, ou só os de um artista) ===== */
+(function () {
+    const REL = ['Igreja', 'Acampamento', 'Prefeitura'];
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    function lista(artId) {
+        const app = window.app; const p = app.perm;
+        const scope = (c) => (c && c.artistId) ? 'artist:' + c.artistId : 'leads-sem-artista';
+        return (app.artistClients || []).filter(c => {
+            if (app.isAutoLead && app.isAutoLead(c)) return false;
+            if (p && !p.admin && !(p.can(scope(c), 'view') || (!c.artistId && app.leadOwner && p.can('artist:' + app.leadOwner(c), 'view')))) return false;
+            if (artId && (app.leadOwner ? app.leadOwner(c) : c.artistId) !== artId) return false;
+            return true;
+        }).map(c => ({
+            grupo: c.category === 'Prefeitura' ? 'Prefeitura' : (REL.indexOf(c.category) !== -1 ? 'Religioso' : 'Social'), categoria: c.category || '', nome: c.org || '', responsavel: c.contact || '',
+            doc: c.doc || '', whatsapp: c.whatsapp || '', cidade: c.city || '', uf: c.state || '',
+            artista: app.leadArtistName ? app.leadArtistName(app.leadOwner ? app.leadOwner(c) : c.artistId) : '', obs: String(c.notes || '').replace(/\s+/g, ' ').trim()
+        })).sort((a, b) => (a.grupo + a.nome).localeCompare(b.grupo + b.nome, 'pt-BR'));
+    }
+    const COLS = [['grupo', 'Tipo', 11], ['categoria', 'Categoria', 18], ['nome', 'Nome / Instituição', 32], ['responsavel', 'Responsável', 26], ['doc', 'CPF / CNPJ', 20], ['whatsapp', 'WhatsApp', 17], ['cidade', 'Cidade', 20], ['uf', 'UF', 6], ['artista', 'Artista', 14], ['obs', 'Origem / Observações', 50]];
+    const hojeArq = () => new Date().toISOString().slice(0, 10);
+    function titulo(artId) { const a = artId && (window.app.artistsRoster || []).find(x => x.id === artId); return a ? 'Leads - ' + a.name : 'Banco de Leads - Alpha Produções'; }
+    function baixar(blob, nome) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+
+    function excelSimples(L, artId) {
+        const h = '<html><head><meta charset="utf-8"></head><body><table border="1"><tr>' + COLS.map(c => '<th style="background:#F5B301">' + c[1] + '</th>').join('') + '</tr>' +
+            L.map(r => '<tr>' + COLS.map(c => '<td style="mso-number-format:\'\\@\'">' + esc(r[c[0]]) + '</td>').join('') + '</tr>').join('') + '</table></body></html>';
+        baixar(new Blob(['\ufeff' + h], { type: 'application/vnd.ms-excel' }), titulo(artId) + ' ' + hojeArq() + '.xls');
+    }
+    async function excel(artId) {
+        const L = lista(artId); if (!L.length) { alert('Nenhum lead para exportar.'); return; }
+        const go = async () => {
+            const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet('Leads', { views: [{ state: 'frozen', ySplit: 3 }] });
+            ws.mergeCells(1, 1, 1, COLS.length); ws.getCell(1, 1).value = titulo(artId) + ' • ' + L.length + ' lead(s) • ' + new Date().toLocaleDateString('pt-BR');
+            ws.getCell(1, 1).font = { bold: true, size: 14 };
+            ws.getRow(3).values = COLS.map(c => c[1]);
+            ws.getRow(3).eachCell(cl => { cl.font = { bold: true }; cl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5B301' } }; cl.alignment = { vertical: 'middle' }; });
+            COLS.forEach((c, i) => { ws.getColumn(i + 1).width = c[2]; });
+            L.forEach(r => { const row = ws.addRow(COLS.map(c => r[c[0]])); row.alignment = { vertical: 'top', wrapText: true }; });
+            ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3 + L.length, column: COLS.length } };
+            const buf = await wb.xlsx.writeBuffer();
+            baixar(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), titulo(artId) + ' ' + hojeArq() + '.xlsx');
+        };
+        if (window.ExcelJS) { try { await go(); } catch (e) { excelSimples(L, artId); } return; }
+        const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+        sc.onload = () => go().catch(() => excelSimples(L, artId)); sc.onerror = () => excelSimples(L, artId); document.head.appendChild(sc);
+    }
+    function pdf(artId) {
+        const L = lista(artId); if (!L.length) { alert('Nenhum lead para exportar.'); return; }
+        const logo = window.ALPHA_LOGO_PNG ? '<img src="' + window.ALPHA_LOGO_PNG + '" style="height:46px">' : '';
+        const nRel = L.filter(r => r.grupo === 'Religioso').length, nPref = L.filter(r => r.grupo === 'Prefeitura').length;
+        const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>' + esc(titulo(artId)) + '</title><style>' +
+            '@page{size:A4 landscape;margin:12mm}@media print{.head{padding-right:0}}body{font-family:Arial,sans-serif;color:#111;font-size:9pt}.head{display:flex;justify-content:space-between;align-items:center;padding-right:170px;border-bottom:3px solid #F5B301;padding-bottom:8px;margin-bottom:10px}' +
+            'h1{font-size:15pt;margin:0}.sub{color:#555;font-size:9pt}table{width:100%;border-collapse:collapse}th{background:#F5B301;text-align:left;padding:5px;font-size:8pt;text-transform:uppercase}' +
+            'td{padding:5px;border-bottom:1px solid #ddd;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.tag{font-size:7.5pt;font-weight:bold;padding:1px 5px;border-radius:3px;background:#eef}.soc{background:#fdf0d5}</style></head><body>' +
+            (window.__alphaBackBtn ? window.__alphaBackBtn() : '') +
+            '<div class="head"><div><h1>' + esc(titulo(artId)) + '</h1><div class="sub">' + L.length + ' lead(s) • ' + nRel + ' religioso(s) • ' + (L.length - nRel - nPref) + ' social(is) • ' + nPref + ' prefeitura(s) • gerado em ' + new Date().toLocaleDateString('pt-BR') + '</div></div>' + logo + '</div>' +
+            '<table><thead><tr>' + COLS.map(c => '<th>' + c[1] + '</th>').join('') + '</tr></thead><tbody>' +
+            L.map(r => '<tr>' + COLS.map(c => '<td>' + (c[0] === 'grupo' ? '<span class="tag ' + (r.grupo === 'Social' ? 'soc' : '') + '">' + esc(r.grupo) + '</span>' : esc(r[c[0]])) + '</td>').join('') + '</tr>').join('') +
+            '</tbody></table><script>setTimeout(function(){window.print()},500)<\/script></body></html>';
+        const w = window.open('', '_blank'); if (!w) { alert('O navegador bloqueou a janela. Libere os pop-ups para este site e tente de novo.'); return; }
+        w.document.open(); w.document.write(html); w.document.close();
+    }
+    window.AlphaLeadsExport = { excel, pdf };
+
+    function botoes(artId) {
+        const a = artId ? "'" + artId + "'" : "''";
+        return '<button onclick="AlphaLeadsExport.excel(' + a + ')" class="btn-secondary-alpha status-pos px-4 py-2.5 rounded-xl text-xs font-bold">📊 Exportar Excel</button>' +
+            '<button onclick="AlphaLeadsExport.pdf(' + a + ')" class="btn-secondary-alpha px-4 py-2.5 rounded-xl text-xs font-bold">📄 Exportar PDF</button>';
+    }
+    function install() {
+        const app = window.app; if (!app || !app.renderLeadsBankView || !app.renderArtistClientsSection || app.__leadsExp) return false;
+        app.__leadsExp = true;
+        const b0 = app.renderLeadsBankView;
+        app.renderLeadsBankView = function () {
+            const h = b0.apply(this, arguments);
+            return h.replace('<button onclick="app.openArtistClientModal(\'\')"', '<div class="flex flex-wrap gap-2">' + botoes('') + '<button onclick="app.openArtistClientModal(\'\')"')
+                .replace('+ NOVO LEAD</button></div>', '+ NOVO LEAD</button></div></div>');
+        };
+        const c0 = app.renderArtistClientsSection;
+        app.renderArtistClientsSection = function (art) {
+            const h = c0.apply(this, arguments);
+            if (h.indexOf('+ NOVO LEAD</button>') === -1) return h.replace('</p></div>', '</p></div><div class="flex flex-wrap gap-2">' + botoes(art.id) + '</div>');
+            return h.replace('<button onclick="app.openArtistClientModal()"', '<div class="flex flex-wrap gap-2">' + botoes(art.id) + '<button onclick="app.openArtistClientModal()"')
+                .replace('+ NOVO LEAD</button></div>', '+ NOVO LEAD</button></div></div>');
+        };
+        try { app.render(); } catch (e) {}
+        return true;
+    }
+    window.addEventListener('load', () => { const t = setInterval(() => { if (install()) clearInterval(t); }, 1500); });
 })();
 </script>
 
