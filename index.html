@@ -8910,12 +8910,15 @@ window.addEventListener('load', () => {
         const cur = CEN.cur; const colr = { 'Evento': 'bg-amber-600', 'Apresentação': 'bg-amber-600', 'Viagem': 'bg-sky-700', 'Day sheet': 'bg-violet-700', 'Tarefa': 'bg-emerald-700', 'Pagamento': 'bg-red-700' };
         const chip = (e) => '<div onclick="app.cenGo(\'' + esc(e.parentId) + '\',\'' + esc(e.showId) + '\',\'' + esc(e.target) + '\',\'' + esc(e.artistId) + '\')" class="cursor-pointer ' + (e.cor ? '' : (colr[e.cat] || 'bg-slate-700')) + ' text-white rounded px-1 py-0.5 mb-0.5 text-[10px] leading-tight break-words" style="' + (e.cor ? 'background:' + e.cor : '') + '" title="' + esc(e.gLabel || '') + '">' + (e.time ? esc(e.time) + ' ' : '') + esc(e.title) + '</div>';
         let title = '', grid = '';
-        const dayBox = (d, big) => { const s = ymd(d); const L = E.filter(e => e.date === s); return '<div class="border border-alpha-border/60 rounded p-1 ' + (s === todayStr() ? 'bg-alpha-hover' : '') + ' min-h-[' + (big ? '90' : '64') + 'px]"><button class="text-[10px] font-bold text-alpha-muted" onclick="app.calDay(\'' + s + '\')">' + WD[d.getDay()] + ' ' + d.getDate() + '</button>' + L.slice(0, big ? 50 : 4).map(chip).join('') + (!big && L.length > 4 ? '<div class="text-[10px] text-alpha-muted">+' + (L.length - 4) + ' mais</div>' : '') + '</div>'; };
+        const dayBox = (d, big, fora) => { const s = ymd(d); const L = E.filter(e => e.date === s); const hoje = s === todayStr();
+            // dias do mês: fundo claro para leitura; dias de outro mês: continuam escuros e apagados
+            const estilo = fora ? '' : 'background:' + (hoje ? '#FFF4CC' : '#F4F5F7') + ';border-color:' + (hoje ? '#F5B301' : '#D6D9DF') + ';' + (hoje ? 'box-shadow:inset 0 0 0 2px #F5B301;' : '');
+            return '<div class="border border-alpha-border/60 rounded p-1 min-h-[' + (big ? '90' : '64') + 'px]" style="' + estilo + '"><button class="text-[10px] font-bold ' + (fora ? 'text-alpha-muted' : '') + '" style="' + (fora ? '' : 'color:#1F2430') + '" onclick="app.calDay(\'' + s + '\')">' + WD[d.getDay()] + ' ' + d.getDate() + (hoje && !fora ? ' • hoje' : '') + '</button>' + L.slice(0, big ? 50 : 4).map(chip).join('') + (!big && L.length > 4 ? '<div class="text-[10px] text-alpha-muted">+' + (L.length - 4) + ' mais</div>' : '') + '</div>'; };
         let range = [];
         if (CEN.cal === 'mes') {
             const first = new Date(cur.getFullYear(), cur.getMonth(), 1); title = first.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); const start = new Date(first); start.setDate(1 - first.getDay());
             const days = []; for (let i = 0; i < 42; i++) { const d = new Date(start); d.setDate(start.getDate() + i); days.push(d); } range = [ymd(days[0]), ymd(days[41])];
-            grid = '<div class="grid grid-cols-7 gap-1 text-center text-[10px] text-alpha-muted mb-1">' + WD.map(w => '<div>' + w + '</div>').join('') + '</div><div class="grid grid-cols-7 gap-1">' + days.map(d => d.getMonth() === first.getMonth() ? dayBox(d, false) : '<div class="opacity-30">' + dayBox(d, false) + '</div>').join('') + '</div>';
+            grid = '<div class="grid grid-cols-7 gap-1 text-center text-[10px] text-alpha-muted mb-1">' + WD.map(w => '<div>' + w + '</div>').join('') + '</div><div class="grid grid-cols-7 gap-1">' + days.map(d => d.getMonth() === first.getMonth() ? dayBox(d, false, false) : '<div class="opacity-30">' + dayBox(d, false, true) + '</div>').join('') + '</div>';
         } else if (CEN.cal === 'semana') {
             const st = new Date(cur); st.setDate(cur.getDate() - cur.getDay()); const days = []; for (let i = 0; i < 7; i++) { const d = new Date(st); d.setDate(st.getDate() + i); days.push(d); } range = [ymd(days[0]), ymd(days[6])]; title = 'Semana de ' + fmt(range[0]) + ' a ' + fmt(range[1]);
             grid = '<div class="grid grid-cols-1 md:grid-cols-7 gap-1">' + days.map(d => dayBox(d, true)).join('') + '</div>';
@@ -9966,12 +9969,15 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gsta
                 if (!s) return;
                 const cat = CAT_EVENTO[ev.eventType || (s.socialDetails || {}).eventType] || 'Outros';
                 // o lead é a PESSOA que fez contato (noiva, aniversariante, cerimonialista, pastor...), nunca o evento
-                const contato = semProd(s.produtorLocal);
+                const sp = s.specs || {};
                 const cd = s.contractData || {};
+                const sd = s.socialDetails || {};
                 const rel = REL.indexOf(cat) !== -1;
+                const contato = semProd(sp.produtorLocal || s.produtorLocal) || (rel ? '' : (sd.honoreeNames || ''));
                 const org = rel ? (cd.nome || '') : (contato || cd.nome || '');
                 if (!contato && !cd.nome) return;
-                L.push({ ref: 'ev:' + ev.id + ':' + s.id, artistId: ev.artistId, category: cat, org: org || contato, contact: contato || cd.nome || '', doc: fmtDoc(cd.doc), whatsapp: s.telefoneLocal || '', city: s.city || '', state: s.state || s.stateUf || '',
+                const loc = s.cityName ? { c: s.cityName, u: s.stateUf || '' } : cidadeUF(s.city);
+                L.push({ ref: 'ev:' + ev.id + ':' + s.id, artistId: ev.artistId, category: cat, org: org || contato, contact: contato || cd.nome || '', doc: fmtDoc(cd.doc), whatsapp: sp.telefoneLocal || s.telefoneLocal || '', city: loc.c || '', state: loc.u || s.state || '',
                     nota: 'Origem: contratou ' + (art0(app, ev.artistId)) + (s.date ? ' para ' + dBR(s.date) : '') });
             });
         });
