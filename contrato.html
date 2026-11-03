@@ -11,7 +11,7 @@
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,Helvetica,sans-serif;line-height:1.45}
 .wrap{max-width:560px;margin:0 auto;padding:20px 16px 48px}
 .top{text-align:center;padding:8px 0 18px}
-.top img{max-width:230px;max-height:120px;width:auto;height:auto}
+.top{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap}.top img{width:auto;height:auto}.top .la{max-height:78px;max-width:44%}.top .lb{max-height:78px;max-width:44%}.top .sep{width:1px;align-self:stretch;background:var(--line)}
 .top .nm{font-size:22px;font-weight:900;letter-spacing:.5px;text-transform:uppercase}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
 h1{font-size:18px;margin:0 0 4px}
@@ -79,7 +79,7 @@ function validate(key, v) {
   const d = snap.data();
   if (d.status === 'closed') return done('closed');
   const pf = d.prefill || {};
-  $('top').innerHTML = pf.logo ? '<img src="' + esc(pf.logo) + '" alt="' + esc(pf.artistName || '') + '">' : '<div class="nm">' + esc(pf.artistName || '') + '</div>';
+  $('top').innerHTML = '<img class="la" src="logo-alpha.png" alt="Alpha Produções" onerror="this.style.display=\'none\'">' + '<span class="sep"></span>' + (pf.logo ? '<img class="lb" src="' + esc(pf.logo) + '" alt="' + esc(pf.artistName || '') + '">' : '<div class="nm">' + esc(pf.artistName || '') + '</div>');
   const fields = Array.isArray(d.fields) ? d.fields : [];
   const missing = new Set(Array.isArray(d.missing) ? d.missing : []);
   const known = d.known || {};
