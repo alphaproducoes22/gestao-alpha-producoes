@@ -20,8 +20,9 @@ h1{font-size:18px;margin:0 0 4px}
 .ev b{display:block;font-size:15px}
 label{display:block;font-weight:700;font-size:13px;margin:14px 0 5px}
 label .r{color:var(--err)}
-input{width:100%;font-size:16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
-input:focus{outline:2px solid var(--y);border-color:var(--y)}
+input,select{width:100%;font-size:16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:2px solid var(--y);border-color:var(--y)}
+select{appearance:auto}
 .known{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f3f7f3;border:1px solid #cfe3cf;border-radius:10px;padding:9px 12px;margin-top:8px;font-size:14px}
 .known small{display:block;color:var(--mut);font-size:12px}
 .known button{background:none;border:0;color:#1d4ed8;font-weight:700;font-size:13px;cursor:pointer;padding:4px}
@@ -62,7 +63,7 @@ function validate(key, v) {
   if (!v) return '';
   if (key === 'doc') { const n = digits(v).length; if (n !== 11 && n !== 14) return 'Informe um CPF (11 números) ou CNPJ (14 números).'; }
   if (key === 'repCpf') { if (digits(v).length !== 11) return 'O CPF tem 11 números.'; }
-  if (key === 'telefone') { if (digits(v).length < 10) return 'Informe o telefone com DDD.'; }
+  if (key === 'telefone' || key === 'cerimTel') { if (digits(v).length < 10) return 'Informe o telefone com DDD.'; }
   if (key === 'email') { if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return 'E-mail inválido.'; }
   return '';
 }
@@ -85,11 +86,13 @@ function validate(key, v) {
   const known = d.known || {};
   const prev = d.data || {};
   const evLine = [brDate(pf.date), pf.city, pf.venue].filter(Boolean).join(' • ');
-  let h = '<h1>Dados para o contrato</h1><p class="sub">Preencha só o que falta. Leva menos de 2 minutos.</p>'
+  let h = pf.novo
+        ? '<h1>Cadastro do seu evento</h1><p class="sub">Preencha os dados abaixo para reservarmos a sua data e prepararmos o contrato. Leva uns 3 minutos.</p><form id="f" novalidate>'
+        : '<h1>Dados para o contrato</h1><p class="sub">Preencha só o que falta. Leva menos de 2 minutos.</p>'
         + '<div class="ev"><b>' + esc(pf.title || 'Evento') + '</b>' + esc(evLine) + '</div><form id="f" novalidate>';
   const miss = fields.filter(f => missing.has(f.key));
   const have = fields.filter(f => !missing.has(f.key) && known[f.key]);
-  if (miss.length) { h += '<div class="sec">Falta preencher</div>'; miss.forEach(f => { h += input(f, prev[f.key]); }); }
+  if (miss.length) { if (!pf.novo) h += '<div class="sec">Falta preencher</div>'; miss.forEach(f => { if (f.sec) h += '<div class="sec">' + esc(f.sec) + '</div>'; h += input(f, prev[f.key]); }); }
   if (have.length) {
     h += '<div class="sec">Já temos estes dados</div>';
     have.forEach(f => { h += '<div class="known" id="k_' + f.key + '"><div><b>' + esc(f.label) + '</b><small>' + esc(known[f.key]) + '</small></div><button type="button" data-fix="' + f.key + '">Corrigir</button></div><div id="w_' + f.key + '" class="hide">' + input(f, prev[f.key], true) + '</div>'; });
@@ -98,8 +101,10 @@ function validate(key, v) {
   h += '<div id="err" class="msg err hide"></div><button class="go" id="go" type="submit">Enviar dados</button></form>';
   box(h);
   function input(f, val, opt) {
-    const t = f.key === 'telefone' ? 'tel' : (f.key === 'email' ? 'email' : (f.key === 'hora' ? 'time' : 'text'));
-    return '<label for="i_' + f.key + '">' + esc(f.label) + (f.req && !opt ? ' <span class="r">*</span>' : '') + '</label><input id="i_' + f.key + '" name="' + f.key + '" type="' + t + '" value="' + esc(val || '') + '" autocomplete="off">';
+    const t = f.type || ((f.key === 'telefone' || f.key === 'cerimTel') ? 'tel' : (f.key === 'email' ? 'email' : (f.key === 'hora' ? 'time' : 'text')));
+    const lab = '<label for="i_' + f.key + '">' + esc(f.label) + (f.req && !opt ? ' <span class="r">*</span>' : '') + '</label>';
+    if (f.type === 'select') return lab + '<select id="i_' + f.key + '" name="' + f.key + '"><option value="">Selecione…</option>' + (f.opts || []).map(o => '<option value="' + esc(o) + '"' + (String(val || '') === o ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select>';
+    return lab + '<input id="i_' + f.key + '" name="' + f.key + '" type="' + t + '" value="' + esc(val || '') + '" placeholder="' + esc(f.ph || '') + '" autocomplete="off">';
   }
   document.querySelectorAll('[data-fix]').forEach(b => b.addEventListener('click', () => {
     const k = b.getAttribute('data-fix'); $('k_' + k).classList.add('hide'); $('w_' + k).classList.remove('hide'); $('i_' + k).focus();
