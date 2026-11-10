@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Dados para o contrato — NC Music</title>
+<meta property="og:title" content="Dados para o contrato — NC Music">
+<meta property="og:description" content="Alpha Produções • preencha os dados do seu evento (leva apenas 1 minutinho)">
+<meta property="og:type" content="website">
+<style>
+:root{--bg:#f4f4f2;--card:#fff;--ink:#111827;--mut:#6b7280;--line:#d9d9d4;--y:#F5B301;--err:#b91c1c;--ok:#166534}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,Helvetica,sans-serif;line-height:1.45}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 48px}
+.top{text-align:center;padding:8px 0 18px}
+.top{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap}.top img{width:auto;height:auto}.top .la{max-height:78px;max-width:44%}.top .lb{max-height:78px;max-width:44%}.top .sep{width:1px;align-self:stretch;background:var(--line)}
+.top .nm{font-size:22px;font-weight:900;letter-spacing:.5px;text-transform:uppercase}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+h1{font-size:18px;margin:0 0 4px}
+.sub{color:var(--mut);font-size:14px;margin:0 0 14px}
+.ev{background:#fafaf7;border:1px solid var(--line);border-left:4px solid var(--y);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:16px}
+.ev b{display:block;font-size:15px}
+label{display:block;font-weight:700;font-size:13px;margin:14px 0 5px}
+label .r{color:var(--err)}
+input,select{width:100%;font-size:16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:2px solid var(--y);border-color:var(--y)}
+select{appearance:auto}
+.known{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f3f7f3;border:1px solid #cfe3cf;border-radius:10px;padding:9px 12px;margin-top:8px;font-size:14px}
+.known small{display:block;color:var(--mut);font-size:12px}
+.known button{background:none;border:0;color:#1d4ed8;font-weight:700;font-size:13px;cursor:pointer;padding:4px}
+.sec{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);margin:20px 0 2px}
+button.go{width:100%;margin-top:20px;background:var(--y);color:#111;border:0;border-radius:12px;font-size:17px;font-weight:900;padding:15px;cursor:pointer}
+button.go[disabled]{opacity:.6}
+.msg{border-radius:10px;padding:12px;font-size:14px;margin-top:14px}
+.msg.err{background:#fef2f2;border:1px solid #fecaca;color:var(--err)}
+.big{text-align:center;padding:26px 10px}
+.big .i{font-size:46px}
+.foot{text-align:center;color:var(--mut);font-size:12px;margin-top:18px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top" id="top"></div>
+  <div class="card" id="box"><p class="sub">Carregando…</p></div>
+  <p class="foot">Seus dados são usados somente para elaborar o contrato deste evento.<br>Alpha Produções</p>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { initializeFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const cfg = { apiKey: "AIzaSyBR6gD3Bjo57qNhQqKE1rWb2LgmhJoWY9E", authDomain: "gestao-alpha-producoes.firebaseapp.com", projectId: "gestao-alpha-producoes", appId: "1:150155238523:web:aaaee132aaac270d8f96de" };
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const token = new URLSearchParams(location.search).get('t') || '';
+const brDate = (d) => { const p = String(d || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : (d || ''); };
+function box(html) { $('box').innerHTML = html; }
+let IS_NOVO = false;
+function done(kind) {
+  if (kind === 'ok' && IS_NOVO) box('<div class="big"><div class="i">✅</div><h1>Dados enviados!</h1><p class="sub">Recebemos tudo certinho. A Alpha Produções vai preparar o contrato e entrar em contato.<br><br>Precisa corrigir algo? É só avisar a Alpha Produções.</p></div>');
+  else if (kind === 'ok') box('<div class="big"><div class="i">✅</div><h1>Dados enviados!</h1><p class="sub">Recebemos tudo certinho. A Alpha Produções vai preparar o contrato e entrar em contato.<br><br>Precisa corrigir algo? É só abrir este mesmo link de novo e reenviar.</p></div>');
+  else if (kind === 'closed') box('<div class="big"><div class="i">🔒</div><h1>Este link foi encerrado</h1><p class="sub">Fale com a Alpha Produções para receber um link novo.</p></div>');
+  else if (kind === 'bad') box('<div class="big"><div class="i">⚠️</div><h1>Link não encontrado</h1><p class="sub">Confira se o endereço foi copiado inteiro ou peça um novo link à Alpha Produções.</p></div>');
+  else box('<div class="big"><div class="i">📡</div><h1>Não consegui abrir agora</h1><p class="sub">Verifique sua internet e tente de novo em alguns instantes.</p></div>');
+}
+const digits = (v) => String(v || '').replace(/\D/g, '');
+function validate(key, v) {
+  if (!v) return '';
+  if (key === 'doc') { const n = digits(v).length; if (n !== 11 && n !== 14) return 'Informe um CPF (11 números) ou CNPJ (14 números).'; }
+  if (key === 'repCpf') { if (digits(v).length !== 11) return 'O CPF tem 11 números.'; }
+  if (key === 'telefone' || key === 'cerimTel') { if (digits(v).length < 10) return 'Informe o telefone com DDD.'; }
+  if (key === 'email') { if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return 'E-mail inválido.'; }
+  return '';
+}
+(async function main() {
+  if (!token || token.length < 16) return done('bad');
+  let ref, snap, db;
+  try {
+    const app = initializeApp(cfg);
+    db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+    ref = doc(db, 'alpha_intake_v1', token);
+    snap = await getDoc(ref);
+  } catch (e) { return done(e && e.code === 'permission-denied' ? 'bad' : 'net'); }
+  if (!snap.exists()) return done('bad');
+  const d = snap.data();
+  if (d.status === 'closed') return done('closed');
+  const pf = d.prefill || {};
+  IS_NOVO = d.kind === 'novo_evento_padrao';
+  if (pf.artistName) { try { document.title = 'Dados para o contrato — ' + pf.artistName; } catch (e) {} }
+  $('top').innerHTML = '<img class="la" src="logo-alpha.png" alt="Alpha Produções" onerror="this.style.display=\'none\'">' + '<span class="sep"></span>' + (pf.logo ? '<img class="lb" src="' + esc(pf.logo) + '" alt="' + esc(pf.artistName || '') + '">' : '<div class="nm">' + esc(pf.artistName || '') + '</div>');
+  const fields = Array.isArray(d.fields) ? d.fields : [];
+  const missing = new Set(Array.isArray(d.missing) ? d.missing : []);
+  const known = d.known || {};
+  const prev = d.data || {};
+  const evLine = [brDate(pf.date), pf.city, pf.venue].filter(Boolean).join(' • ');
+  let h = pf.novo
+        ? '<h1>Cadastro do seu evento</h1><p class="sub">Preencha os dados abaixo para reservarmos a sua data e prepararmos o contrato. Leva apenas 1 minutinho.</p><form id="f" novalidate>'
+        : '<h1>Dados para o contrato</h1><p class="sub">Preencha só o que falta. Leva apenas 1 minutinho.</p>'
+        + '<div class="ev"><b>' + esc(pf.title || 'Evento') + '</b>' + esc(evLine) + '</div><form id="f" novalidate>';
+  const miss = fields.filter(f => missing.has(f.key));
+  const have = fields.filter(f => !missing.has(f.key) && known[f.key]);
+  if (miss.length) { if (!pf.novo) h += '<div class="sec">Falta preencher</div>'; miss.forEach(f => { if (f.sec) h += '<div class="sec">' + esc(f.sec) + '</div>'; h += input(f, prev[f.key]); }); }
+  if (have.length) {
+    h += '<div class="sec">Já temos estes dados</div>';
+    have.forEach(f => { h += '<div class="known" id="k_' + f.key + '"><div><b>' + esc(f.label) + '</b><small>' + esc(known[f.key]) + '</small></div><button type="button" data-fix="' + f.key + '">Corrigir</button></div><div id="w_' + f.key + '" class="hide">' + input(f, prev[f.key], true) + '</div>'; });
+  }
+  if (!miss.length && !have.length) h += '<p class="sub">Não há nada a preencher no momento.</p>';
+  h += '<div id="err" class="msg err hide"></div><button class="go" id="go" type="submit">Enviar dados</button></form>';
+  box(h);
+  function input(f, val, opt) {
+    const t = f.type || ((f.key === 'telefone' || f.key === 'cerimTel') ? 'tel' : (f.key === 'email' ? 'email' : (f.key === 'hora' ? 'time' : 'text')));
+    const lab = '<label for="i_' + f.key + '">' + esc(f.label) + (f.req && !opt ? ' <span class="r">*</span>' : '') + '</label>';
+    if (f.type === 'select') return lab + '<select id="i_' + f.key + '" name="' + f.key + '"><option value="">Selecione…</option>' + (f.opts || []).map(o => '<option value="' + esc(o) + '"' + (String(val || '') === o ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select>';
+    return lab + '<input id="i_' + f.key + '" name="' + f.key + '" type="' + t + '" value="' + esc(val || '') + '" placeholder="' + esc(f.ph || '') + '" autocomplete="off">';
+  }
+  document.querySelectorAll('[data-fix]').forEach(b => b.addEventListener('click', () => {
+    const k = b.getAttribute('data-fix'); $('k_' + k).classList.add('hide'); $('w_' + k).classList.remove('hide'); $('i_' + k).focus();
+  }));
+  $('f').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const out = {}; const errs = [];
+    fields.forEach(f => {
+      const el = $('i_' + f.key); if (!el) return;
+      const v = String(el.value || '').trim();
+      const isMissing = missing.has(f.key);
+      if (isMissing && f.req && !v) errs.push('Preencha: ' + f.label);
+      if (v) { const m = validate(f.key, v); if (m) errs.push(f.label + ': ' + m); out[f.key] = v.slice(0, 300); }
+    });
+    const e = $('err');
+    if (errs.length) { e.innerHTML = errs.map(esc).join('<br>'); e.classList.remove('hide'); e.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+    e.classList.add('hide');
+    const go = $('go'); go.disabled = true; go.textContent = 'Enviando…';
+    try {
+      const merged = Object.assign({}, prev, out);
+      if (IS_NOVO) {
+        const a = new Uint8Array(20); crypto.getRandomValues(a); const nid = Array.from(a).map(x => (x % 36).toString(36)).join('');
+        const sent = (new URLSearchParams(location.search).get('c') || '').replace(/[^a-z0-9]/gi, '').slice(0, 40);
+        const now = Date.now();
+        const rec = { id: nid, kind: 'novo_evento', status: 'filled', artistId: d.artistId, mode: d.mode || 'social', createdAt: now, filledAt: now, fromLink: token, data: merged };
+        if (sent) rec.sentId = sent;
+        await setDoc(doc(db, 'alpha_intake_v1', nid), rec);
+      } else await updateDoc(ref, { status: 'filled', filledAt: Date.now(), data: merged });
+      done('ok');
+    } catch (x) {
+      go.disabled = false; go.textContent = 'Enviar dados';
+      e.textContent = (x && x.code === 'permission-denied') ? 'Este link não aceita mais envios. Fale com a Alpha Produções.' : 'Não foi possível enviar agora. Verifique a internet e tente de novo.';
+      e.classList.remove('hide');
+    }
+  });
+})();
+</script>
+</body>
+</html>

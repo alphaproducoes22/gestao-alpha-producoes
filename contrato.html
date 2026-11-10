@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Dados para o contrato</title>
+<meta property="og:title" content="Dados para o contrato — Alpha Produções">
+<meta property="og:description" content="Preencha os dados do seu evento (leva apenas 1 minutinho)">
+<meta property="og:type" content="website">
 <style>
 :root{--bg:#f4f4f2;--card:#fff;--ink:#111827;--mut:#6b7280;--line:#d9d9d4;--y:#F5B301;--err:#b91c1c;--ok:#166534}
 *{box-sizing:border-box}
@@ -83,6 +86,7 @@ function validate(key, v) {
   if (d.status === 'closed') return done('closed');
   const pf = d.prefill || {};
   IS_NOVO = d.kind === 'novo_evento_padrao';
+  if (pf.artistName) { try { document.title = 'Dados para o contrato — ' + pf.artistName; } catch (e) {} }
   $('top').innerHTML = '<img class="la" src="logo-alpha.png" alt="Alpha Produções" onerror="this.style.display=\'none\'">' + '<span class="sep"></span>' + (pf.logo ? '<img class="lb" src="' + esc(pf.logo) + '" alt="' + esc(pf.artistName || '') + '">' : '<div class="nm">' + esc(pf.artistName || '') + '</div>');
   const fields = Array.isArray(d.fields) ? d.fields : [];
   const missing = new Set(Array.isArray(d.missing) ? d.missing : []);
@@ -90,8 +94,8 @@ function validate(key, v) {
   const prev = d.data || {};
   const evLine = [brDate(pf.date), pf.city, pf.venue].filter(Boolean).join(' • ');
   let h = pf.novo
-        ? '<h1>Cadastro do seu evento</h1><p class="sub">Preencha os dados abaixo para reservarmos a sua data e prepararmos o contrato. Leva uns 3 minutos.</p><form id="f" novalidate>'
-        : '<h1>Dados para o contrato</h1><p class="sub">Preencha só o que falta. Leva menos de 2 minutos.</p>'
+        ? '<h1>Cadastro do seu evento</h1><p class="sub">Preencha os dados abaixo para reservarmos a sua data e prepararmos o contrato. Leva apenas 1 minutinho.</p><form id="f" novalidate>'
+        : '<h1>Dados para o contrato</h1><p class="sub">Preencha só o que falta. Leva apenas 1 minutinho.</p>'
         + '<div class="ev"><b>' + esc(pf.title || 'Evento') + '</b>' + esc(evLine) + '</div><form id="f" novalidate>';
   const miss = fields.filter(f => missing.has(f.key));
   const have = fields.filter(f => !missing.has(f.key) && known[f.key]);
