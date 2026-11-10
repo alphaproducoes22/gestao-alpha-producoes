@@ -132,7 +132,7 @@ function validate(key, v) {
         const a = new Uint8Array(20); crypto.getRandomValues(a); const nid = Array.from(a).map(x => (x % 36).toString(36)).join('');
         const sent = (new URLSearchParams(location.search).get('c') || '').replace(/[^a-z0-9]/gi, '').slice(0, 40);
         const now = Date.now();
-        const rec = { id: nid, kind: 'novo_evento', status: 'filled', artistId: d.artistId, mode: 'social', createdAt: now, filledAt: now, fromLink: token, data: merged };
+        const rec = { id: nid, kind: 'novo_evento', status: 'filled', artistId: d.artistId, mode: d.mode || 'social', createdAt: now, filledAt: now, fromLink: token, data: merged };
         if (sent) rec.sentId = sent;
         await setDoc(doc(db, 'alpha_intake_v1', nid), rec);
       } else await updateDoc(ref, { status: 'filled', filledAt: Date.now(), data: merged });
