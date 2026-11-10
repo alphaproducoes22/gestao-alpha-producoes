@@ -45,15 +45,17 @@ button.go[disabled]{opacity:.6}
 </div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { initializeFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { initializeFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const cfg = { apiKey: "AIzaSyBR6gD3Bjo57qNhQqKE1rWb2LgmhJoWY9E", authDomain: "gestao-alpha-producoes.firebaseapp.com", projectId: "gestao-alpha-producoes", appId: "1:150155238523:web:aaaee132aaac270d8f96de" };
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const token = new URLSearchParams(location.search).get('t') || '';
 const brDate = (d) => { const p = String(d || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : (d || ''); };
 function box(html) { $('box').innerHTML = html; }
+let IS_NOVO = false;
 function done(kind) {
-  if (kind === 'ok') box('<div class="big"><div class="i">✅</div><h1>Dados enviados!</h1><p class="sub">Recebemos tudo certinho. A Alpha Produções vai preparar o contrato e entrar em contato.<br><br>Precisa corrigir algo? É só abrir este mesmo link de novo e reenviar.</p></div>');
+  if (kind === 'ok' && IS_NOVO) box('<div class="big"><div class="i">✅</div><h1>Dados enviados!</h1><p class="sub">Recebemos tudo certinho. A Alpha Produções vai preparar o contrato e entrar em contato.<br><br>Precisa corrigir algo? É só avisar a Alpha Produções.</p></div>');
+  else if (kind === 'ok') box('<div class="big"><div class="i">✅</div><h1>Dados enviados!</h1><p class="sub">Recebemos tudo certinho. A Alpha Produções vai preparar o contrato e entrar em contato.<br><br>Precisa corrigir algo? É só abrir este mesmo link de novo e reenviar.</p></div>');
   else if (kind === 'closed') box('<div class="big"><div class="i">🔒</div><h1>Este link foi encerrado</h1><p class="sub">Fale com a Alpha Produções para receber um link novo.</p></div>');
   else if (kind === 'bad') box('<div class="big"><div class="i">⚠️</div><h1>Link não encontrado</h1><p class="sub">Confira se o endereço foi copiado inteiro ou peça um novo link à Alpha Produções.</p></div>');
   else box('<div class="big"><div class="i">📡</div><h1>Não consegui abrir agora</h1><p class="sub">Verifique sua internet e tente de novo em alguns instantes.</p></div>');
@@ -69,10 +71,10 @@ function validate(key, v) {
 }
 (async function main() {
   if (!token || token.length < 16) return done('bad');
-  let ref, snap;
+  let ref, snap, db;
   try {
     const app = initializeApp(cfg);
-    const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+    db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
     ref = doc(db, 'alpha_intake_v1', token);
     snap = await getDoc(ref);
   } catch (e) { return done(e && e.code === 'permission-denied' ? 'bad' : 'net'); }
@@ -80,6 +82,7 @@ function validate(key, v) {
   const d = snap.data();
   if (d.status === 'closed') return done('closed');
   const pf = d.prefill || {};
+  IS_NOVO = d.kind === 'novo_evento_padrao';
   $('top').innerHTML = '<img class="la" src="logo-alpha.png" alt="Alpha Produções" onerror="this.style.display=\'none\'">' + '<span class="sep"></span>' + (pf.logo ? '<img class="lb" src="' + esc(pf.logo) + '" alt="' + esc(pf.artistName || '') + '">' : '<div class="nm">' + esc(pf.artistName || '') + '</div>');
   const fields = Array.isArray(d.fields) ? d.fields : [];
   const missing = new Set(Array.isArray(d.missing) ? d.missing : []);
@@ -125,7 +128,14 @@ function validate(key, v) {
     const go = $('go'); go.disabled = true; go.textContent = 'Enviando…';
     try {
       const merged = Object.assign({}, prev, out);
-      await updateDoc(ref, { status: 'filled', filledAt: Date.now(), data: merged });
+      if (IS_NOVO) {
+        const a = new Uint8Array(20); crypto.getRandomValues(a); const nid = Array.from(a).map(x => (x % 36).toString(36)).join('');
+        const sent = (new URLSearchParams(location.search).get('c') || '').replace(/[^a-z0-9]/gi, '').slice(0, 40);
+        const now = Date.now();
+        const rec = { id: nid, kind: 'novo_evento', status: 'filled', artistId: d.artistId, mode: 'social', createdAt: now, filledAt: now, fromLink: token, data: merged };
+        if (sent) rec.sentId = sent;
+        await setDoc(doc(db, 'alpha_intake_v1', nid), rec);
+      } else await updateDoc(ref, { status: 'filled', filledAt: Date.now(), data: merged });
       done('ok');
     } catch (x) {
       go.disabled = false; go.textContent = 'Enviar dados';
