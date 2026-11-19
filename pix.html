@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Copiar chave Pix – Alpha Produções</title><meta name="robots" content="noindex">
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F6F5F2;font-family:Inter,Arial,sans-serif;color:#18181B;padding:20px}
+.c{background:#fff;border:1px solid #E6E3DD;border-radius:18px;padding:28px 24px;max-width:440px;width:100%;text-align:center}
+img{height:46px;margin-bottom:14px}.l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8B8B90;font-weight:700}
+.n{font-size:17px;font-weight:700;margin:6px 0 16px}.k{font-size:20px;font-weight:800;word-break:break-all;background:#F6F5F2;border:1px dashed #D3CCBE;border-radius:12px;padding:14px;margin-bottom:16px;user-select:all}
+button{width:100%;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:700;background:#18181B;color:#fff;cursor:pointer}
+.ok{background:#3F6B4E}.h{font-size:12px;color:#8B8B90;margin-top:12px}
+</style></head><body>
+<div class="c"><img src="logo-alpha.png" alt="Alpha Produções" onerror="this.remove()">
+<div class="l">Chave Pix <span id="t"></span></div><div class="n" id="n"></div><div class="k" id="k">—</div>
+<button id="b" onclick="cp()">📋 Copiar chave Pix</button>
+<div class="h" id="h">Depois é só colar no app do seu banco.</div></div>
+<script>
+var q=new URLSearchParams(location.hash.slice(1)),K=q.get('k')||'';
+document.getElementById('k').textContent=K||'Chave não informada';document.getElementById('n').textContent=q.get('n')||'';
+var t=q.get('t');if(t)document.getElementById('t').textContent='('+t+')';
+function done(){var b=document.getElementById('b');b.textContent='✅ Chave copiada!';b.className='ok';document.getElementById('h').textContent='Agora é só colar no app do seu banco.';}
+function cp(){if(!K)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(K).then(done,fb)}else fb();}
+function fb(){var r=document.createRange();r.selectNodeContents(document.getElementById('k'));var s=getSelection();s.removeAllRanges();s.addRange(r);try{if(document.execCommand('copy'))return done()}catch(e){}document.getElementById('h').textContent='Toque e segure a chave para copiar.';}
+try{cp()}catch(e){}
+</script></body></html>
