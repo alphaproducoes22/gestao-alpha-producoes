@@ -149,5 +149,63 @@ function validate(key, v) {
   });
 })();
 </script>
+<script id="alpha-v6800">
+/* ===== alpha-v6800: MÁSCARAS AUTOMÁTICAS — CPF, CNPJ, CPF/CNPJ e telefone. Digita só os números; pontos, barra, traço e parênteses entram sozinhos. Vale para todos os campos do sistema. ===== */
+(function () {
+    'use strict';
+    const SKIP_TYPES = /^(email|date|datetime-local|time|month|week|number|password|file|hidden|checkbox|radio|range|color|url|submit|button)$/i;
+    function labelOf(el) {
+        try { if (el.labels && el.labels[0]) return el.labels[0].textContent || ''; } catch (e) {}
+        const box = el.parentElement; if (!box) return '';
+        const lb = box.querySelector('label'); if (lb && box.querySelectorAll('input,select,textarea').length <= 2) return lb.textContent || '';
+        const prev = el.previousElementSibling; return prev && /^(LABEL|SPAN|DIV)$/.test(prev.tagName) ? (prev.textContent || '').slice(0, 60) : '';
+    }
+    function kindOf(el) {
+        if (!el || el.tagName !== 'INPUT' || SKIP_TYPES.test(el.type || 'text') || el.readOnly || el.disabled) return '';
+        if (el.dataset && el.dataset.mask) return el.dataset.mask === 'none' ? '' : el.dataset.mask;
+        if (el.__amk !== undefined) return el.__amk;
+        const h = [el.id, el.name, el.placeholder, el.getAttribute('aria-label'), el.getAttribute('onchange'), el.getAttribute('oninput'), labelOf(el)].join(' ').toLowerCase();
+        let k = '';
+        if (/pix|e-?mail|@|\bcep\b|ag[eê]ncia|\bconta\b|senha|link|url|instagram|observa/.test(h)) k = '';
+        else if (/cpf\s*\/\s*cnpj|cnpj\s*\/\s*cpf|cpf ou cnpj|cnpj ou cpf|cpf\/cnpj|'doc'|-doc\b|\bdoc\b|documento|holderdoc/.test(h)) k = 'doc';
+        else if (/cnpj/.test(h)) k = 'cnpj';
+        else if (/\bcpf\b|cpf/.test(h)) k = 'cpf';
+        else if (/whats|telefone|celular|phone|\bfone\b|\btel\b|(\(00\)|\(21\))\s?9?0{4}/.test(h) || (el.type || '').toLowerCase() === 'tel') k = 'phone';
+        el.__amk = k; return k;
+    }
+    const D = (v) => String(v || '').replace(/\D/g, '');
+    function fCPF(d) { d = d.slice(0, 11); let o = d.slice(0, 3); if (d.length > 3) o += '.' + d.slice(3, 6); if (d.length > 6) o += '.' + d.slice(6, 9); if (d.length > 9) o += '-' + d.slice(9, 11); return o; }
+    function fCNPJ(d) { d = d.slice(0, 14); let o = d.slice(0, 2); if (d.length > 2) o += '.' + d.slice(2, 5); if (d.length > 5) o += '.' + d.slice(5, 8); if (d.length > 8) o += '/' + d.slice(8, 12); if (d.length > 12) o += '-' + d.slice(12, 14); return o; }
+    function fPhone(d, raw) {
+        let pre = ''; if (/^\s*\+/.test(raw) && !/^\s*\+\s*55/.test(raw)) return null; /* número de outro país: não mexe */
+        if (d.length > 11 && d.startsWith('55')) { pre = '+55 '; d = d.slice(2); }
+        d = d.slice(0, 11); if (!d) return pre.trim();
+        let o = '(' + d.slice(0, 2); if (d.length >= 2) o += ') ';
+        const r = d.slice(2); if (!r) return pre + o.trim();
+        if (d.length <= 10) o += r.slice(0, 4) + (r.length > 4 ? '-' + r.slice(4, 8) : '');
+        else o += r.slice(0, 5) + '-' + r.slice(5, 9);
+        return pre + o;
+    }
+    function fmt(k, raw) { const d = D(raw); if (k === 'cpf') return fCPF(d); if (k === 'cnpj') return fCNPJ(d); if (k === 'doc') return d.length <= 11 ? fCPF(d) : fCNPJ(d); if (k === 'phone') return fPhone(d, raw); return null; }
+    function caretAfterDigits(str, n) { if (n <= 0) { const m = /\d/.exec(str); return m ? m.index : str.length; } let c = 0; for (let i = 0; i < str.length; i++) { if (/\d/.test(str[i])) { c++; if (c === n) return i + 1; } } return str.length; }
+    document.addEventListener('focusin', (e) => { const el = e.target; const k = kindOf(el); if (!k) return; el.__amPrev = el.value; if (!el.getAttribute('inputmode')) el.setAttribute('inputmode', k === 'phone' ? 'tel' : 'numeric'); }, true);
+    document.addEventListener('input', (e) => {
+        const el = e.target; const k = kindOf(el); if (!k) return;
+        let v = el.value; let pos = el.selectionStart == null ? v.length : el.selectionStart;
+        let before = D(v.slice(0, pos)).length;
+        /* apagou só um ponto/traço/parêntese: apaga também o número antes dele */
+        if (e.inputType && /^delete/.test(e.inputType) && el.__amPrev != null && D(el.__amPrev) === D(v) && D(v).length) {
+            const all = D(v); const idx = e.inputType === 'deleteContentBackward' ? before - 1 : before;
+            if (idx >= 0 && idx < all.length) { const nd = all.slice(0, idx) + all.slice(idx + 1); v = nd; before = e.inputType === 'deleteContentBackward' ? idx : idx; }
+        }
+        const out = fmt(k, v); if (out == null) { el.__amPrev = el.value; return; }
+        if (out !== el.value) { el.value = out; try { const p = caretAfterDigits(out, before); el.setSelectionRange(p, p); } catch (x) {} }
+        el.__amPrev = el.value;
+    }, true);
+    /* colar um número já com ou sem pontuação: formata também ao sair do campo */
+    document.addEventListener('focusout', (e) => { const el = e.target; const k = kindOf(el); if (!k || !el.value) return; const out = fmt(k, el.value); if (out != null && out !== el.value && D(out) === D(el.value)) { el.value = out; } }, true);
+    window.__alphaMask = { kindOf: kindOf, fmt: fmt };
+})();
+</script>
 </body>
 </html>
