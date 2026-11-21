@@ -38,6 +38,7 @@ button.go[disabled]{opacity:.6}
 .big .i{font-size:46px}
 .foot{text-align:center;color:var(--mut);font-size:12px;margin-top:18px}
 .hide{display:none}
+.ok{background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #16a34a;border-radius:8px;padding:10px 12px;font-size:14px;margin:-6px 0 16px}.ok ul{margin:6px 0 4px;padding-left:18px}.ok li{margin:2px 0}.ok .vl{margin-top:6px}.ok .sn{color:var(--mut);font-size:12px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -96,7 +97,9 @@ function validate(key, v) {
   let h = pf.novo
         ? '<h1>Cadastro do seu evento</h1><p class="sub">Preencha os dados abaixo para reservarmos a sua data e prepararmos o contrato. Leva apenas 1 minutinho.</p><form id="f" novalidate>'
         : '<h1>Dados para o contrato</h1><p class="sub">Preencha só o que falta. Leva apenas 1 minutinho.</p>'
-        + '<div class="ev"><b>' + esc(pf.title || 'Evento') + '</b>' + esc(evLine) + '</div><form id="f" novalidate>';
+        + '<div class="ev"><b>' + esc(pf.title || 'Evento') + '</b>' + esc(evLine) + '</div>'
+        + (Array.isArray(pf.resumo) && pf.resumo.length ? '<div class="ok"><b>✅ O que você aprovou</b><ul>' + pf.resumo.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' + (pf.valor ? '<div class="vl">Valor: <b>' + esc(pf.valor) + '</b></div>' : '') + (pf.sinal ? '<div class="sn">' + esc(pf.sinal) + '</div>' : '') + '</div>' : '')
+        + '<form id="f" novalidate>';
   const miss = fields.filter(f => missing.has(f.key));
   const have = fields.filter(f => !missing.has(f.key) && known[f.key]);
   if (miss.length) { if (!pf.novo) h += '<div class="sec">Falta preencher</div>'; miss.forEach(f => { if (f.sec) h += '<div class="sec">' + esc(f.sec) + '</div>'; h += input(f, prev[f.key]); }); }
